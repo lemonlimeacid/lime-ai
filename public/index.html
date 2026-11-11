@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Supernova IA — agent de code local</title>
+  <meta name="description" content="Supernova IA : agent de code local façon Claude Code + bolt.new. Multi-API, MCP, aperçu live, mode PC/Cloud, vocal." />
+  <script>
+    try {
+      if (localStorage.getItem('supernova.theme') === 'light') document.documentElement.dataset.theme = 'light';
+      const savedSettings = JSON.parse(localStorage.getItem('supernova.settings') || '{}');
+      if (savedSettings && (savedSettings.themeStyle === 'glass' || savedSettings.themeStyle === 'minimal')) {
+        document.documentElement.dataset.style = savedSettings.themeStyle;
+      }
+    } catch (error) {}
+  </script>
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5.5' fill='%23141413'/%3E%3Cg fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' transform='rotate(24 12 12)'%3E%3Cellipse cx='12' cy='12' rx='8.7' ry='4.1' stroke-dasharray='23 7' stroke-dashoffset='-3'/%3E%3Cpath d='M4.7 12a7.3 3.2 0 0 1 14.6 0' opacity='.45'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2' fill='%23e07a52'/%3E%3Cpath d='M19.3 5.8 20.5 4.6M4.7 18.2 3.5 19.4' fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' opacity='.55'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- Système d'icônes (traits 1.75, style Lucide) -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-logo" viewBox="0 0 24 24">
+      <g transform="rotate(24 12 12)">
+        <ellipse cx="12" cy="12" rx="8.7" ry="4.1" stroke-dasharray="23 7" stroke-dashoffset="-3"/>
+        <path d="M4.7 12a7.3 3.2 0 0 1 14.6 0" opacity=".45"/>
+      </g>
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+      <path d="M19.3 5.8 20.5 4.6M4.7 18.2 3.5 19.4" opacity=".55"/>
+    </symbol>
+    <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+    <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="m9 9 3 3-3 3"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+    <symbol id="i-smartphone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.6 5.8 3.6 9s-1.1 6.4-3.6 9c-2.5-2.6-3.6-5.8-3.6-9s1.1-6.4 3.6-9Z"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a6 6 0 0 1-1.1-11.9 7 7 0 0 1 13.1 2.1A4.4 4.4 0 0 1 17.5 19Z"/></symbol>
+    <symbol id="i-panel-collapse" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="m10 9-3 3 3 3"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4"/><path d="M8 22h8"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-volume-x" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8L21.5 18l-1.8.7L19 20.5l-.7-1.8L16.5 18l1.8-.7z"/></symbol>
+    <symbol id="i-square" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m7 4 13 8-13 8z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol>
+    <symbol id="i-logs" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h10"/><path d="M7 17h6"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.4 0 4.7 1 6.3 2.6L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+    <symbol id="i-file-code" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m10 13-2 2 2 2"/><path d="m14 13 2 2-2 2"/></symbol>
+    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></symbol>
+    <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 12v6"/><path d="M9 15h6"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-1"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5L5 20"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.6a1 1 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v3a6 6 0 0 1-12 0V8z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-regenerate" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></symbol>
+    <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><path d="M12 8h.01"/></symbol>
+    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2"/><path d="M15 2v2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/><path d="M20 9h2"/><path d="M20 15h2"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m17.7 6.3 1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  </svg>
+
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"><svg class="i"><use href="#i-logo"></use></svg></span>
+        <span class="brand-text"><strong>Supernova</strong><span class="brand-sub">IA</span></span>
+      </div>
+
+      <span class="divider-v" aria-hidden="true"></span>
+
+      <div class="project-switcher">
+        <button id="projectSelectBtn" class="project-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="projectSelectValue" title="Changer de projet">
+          <svg class="i sm leading" aria-hidden="true"><use id="projectSelectUse" href="#i-folder"></use></svg>
+          <span class="project-select-value" id="projectSelectValue">Aucun projet</span>
+          <svg class="i sm chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+        </button>
+        <div class="project-select-menu" id="projectSelectMenu" role="listbox" aria-label="Projets" hidden>
+          <div class="project-menu-list" id="projectMenuList"></div>
+          <button type="button" class="project-menu-add" id="projectMenuAdd">
+            <span class="project-menu-add-icon" aria-hidden="true"><svg class="i sm"><use href="#i-plus"></use></svg></span>
+            <span class="project-menu-add-copy"><strong>Ajouter un dossier</strong><small>Nouveau projet · dossier « Project - N » par défaut</small></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mode-toggle" role="group" aria-label="Mode de création des projets">
+        <button data-mode="pc" id="modePcBtn" class="active" title="Créer un vrai dossier sur le PC"><svg class="i sm"><use href="#i-monitor"></use></svg><span>PC</span></button>
+        <button data-mode="cloud" id="modeCloudBtn" title="Créer un projet dans le Cloud interne Supernova, exportable en ZIP"><svg class="i sm"><use href="#i-cloud"></use></svg><span>Cloud</span></button>
+      </div>
+
+      <div class="top-actions">
+        <button id="downloadZipBtn" class="btn subtle" title="Télécharger le projet en ZIP"><svg class="i sm"><use href="#i-download"></use></svg><span class="label">ZIP</span></button>
+        <button id="themeBtn" class="icon-btn" title="Passer au thème clair" aria-label="Basculer le thème" aria-pressed="false">
+          <svg class="i theme-sun"><use href="#i-sun"></use></svg>
+          <svg class="i theme-moon"><use href="#i-moon"></use></svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="Paramètres" aria-label="Paramètres"><svg class="i"><use href="#i-sliders"></use></svg></button>
+        <button id="helpBtn" class="icon-btn" title="Aide" aria-label="Aide"><svg class="i"><use href="#i-help"></use></svg></button>
+      </div>
+    </header>
+
+    <div id="modeBanner" class="banner hidden"></div>
+
+    <main class="layout threads-collapsed" id="layout">
+      <aside class="threads-sidebar" id="threadsSidebar" aria-label="Conversations">
+        <div class="threads-head">
+          <button id="threadsToggle" class="icon-btn small" type="button" title="Afficher les conversations" aria-label="Afficher les conversations" aria-expanded="false">
+            <svg class="i sm"><use href="#i-panel-left"></use></svg>
+          </button>
+          <span class="threads-title">Conversations</span>
+          <button id="threadsNewBtn" class="icon-btn small" type="button" title="Créer" aria-label="Créer une conversation ou un projet" aria-haspopup="menu" aria-expanded="false">
+            <svg class="i sm"><use href="#i-plus"></use></svg>
+          </button>
+        </div>
+
+        <div class="threads-menu" id="threadsCreateMenu" role="menu" hidden>
+          <button type="button" role="menuitem" data-thread-create="project">
+            <span class="threads-menu-icon"><svg class="i sm"><use href="#i-folder"></use></svg></span>
+            <span class="threads-menu-copy"><strong>Projets</strong><small>Créer un espace complet avec fichiers et aperçu.</small></span>
+          </button>
+          <button type="button" role="menuitem" data-thread-create="chat">
+            <span class="threads-menu-icon"><svg class="i sm"><use href="#i-message"></use></svg></span>
+            <span class="threads-menu-copy"><strong>Chat</strong><small>Questions, recherches et code simple.</small></span>
+          </button>
+          <button type="button" role="menuitem" data-thread-create="agent">
+            <span class="threads-menu-icon"><svg class="i sm"><use href="#i-code"></use></svg></span>
+            <span class="threads-menu-copy"><strong>Agent</strong><small>Une tâche de code sur le projet actif.</small></span>
+          </button>
+        </div>
+
+        <div class="threads-list" id="threadsList"></div>
+      </aside>
+      <div class="threads-backdrop" id="threadsBackdrop" aria-hidden="true"></div>
+
+      <section class="pane chat-pane" id="chatPane">
+        <div class="pane-head">
+          <span class="pane-title">Conversation</span>
+          <span class="pill" id="enginePill">Supernova Engine</span>
+          <div class="spacer"></div>
+          <div class="pane-controls" id="paneControls">
+            <button id="workspaceViewsBtn" class="icon-btn small" type="button" title="Choisir les vues du panneau de droite" aria-label="Vues du panneau de droite" aria-haspopup="dialog" aria-expanded="false">
+              <svg class="i sm"><use href="#i-panel-right"></use></svg>
+            </button>
+            <div class="views-menu" id="workspaceMenu" role="dialog" aria-label="Vues du panneau de droite" hidden>
+              <div class="views-menu-head">
+                <span class="views-menu-title">Panneau de droite</span>
+                <span class="views-menu-note">Afficher ou masquer chaque vue</span>
+              </div>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="live" checked /><span><strong>Aperçu</strong><small>Le rendu live de l’application</small></span></label>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="code" checked /><span><strong>Code</strong><small>Fichiers, terminal, console et journal</small></span></label>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="search" checked /><span><strong>Recherches</strong><small>Les recherches web de l’agent</small></span></label>
+            </div>
+          </div>
+          <button id="toggleWorkBtn" class="icon-btn small" type="button" title="Masquer le panneau de droite" aria-label="Masquer le panneau de droite" aria-pressed="true"><svg class="i sm"><use href="#i-panel-right"></use></svg></button>
+          <button id="clearChatBtn" class="icon-btn small" title="Effacer la conversation" aria-label="Effacer la conversation"><svg class="i sm"><use href="#i-trash"></use></svg></button>
+        </div>
+
+        <div class="messages" id="messages" aria-live="polite"></div>
+
+        <div class="composer">
+          <div class="composer-box">
+            <div class="composer-attachments" id="composerAttachments" hidden></div>
+            <label class="sr-only" for="prompt">Message</label>
+            <textarea id="prompt" rows="2" placeholder="Décris ce que tu veux construire…"></textarea>
+            <div class="composer-tools">
+              <div class="composer-icons">
+                <input id="fileInput" type="file" multiple hidden />
+                <button id="attachBtn" class="icon-btn ghost" title="Joindre un fichier texte ou du code" aria-label="Joindre un fichier"><svg class="i sm"><use href="#i-paperclip"></use></svg></button>
+                <button id="micBtn" class="icon-btn ghost" title="Dicter à la voix" aria-label="Dicter"><svg class="i sm"><use href="#i-mic"></use></svg></button>
+                <button id="speakBtn" class="icon-btn ghost" title="Lire les réponses à voix haute" aria-label="Lecture vocale"><svg class="i sm"><use href="#i-volume-x"></use></svg></button>
+                <button id="enhanceBtn" class="icon-btn ghost" title="Améliorer le prompt" aria-label="Améliorer le prompt"><svg class="i sm"><use href="#i-sparkles"></use></svg></button>
+              </div>
+              <span class="composer-kbd" aria-hidden="true"><kbd>Entrée</kbd><kbd>Maj</kbd><kbd>Entrée</kbd></span>
+              <div class="spacer"></div>
+              <div class="model-picker" id="modelPicker">
+                <button id="modelPickerBtn" class="model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="modelPickerMenu" title="Modèle actif — choisir un modèle">
+                  <svg class="i sm" aria-hidden="true"><use href="#i-cpu"></use></svg>
+                  <span id="modelPickerLabel" class="model-trigger-label">supernova-mini</span>
+                  <svg class="i xs model-trigger-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+                </button>
+                <div class="model-menu" id="modelPickerMenu" role="dialog" aria-label="Modèle et performance" hidden>
+                  <div class="model-menu-head">
+                    <span class="model-menu-eyebrow">Performance</span>
+                    <span id="modelEffortValue" class="model-effort-value">Équilibré</span>
+                  </div>
+                  <div class="model-effort-control">
+                    <div id="modelEffortTicks" class="model-effort-ticks" aria-hidden="true"></div>
+                    <input id="modelEffortSlider" class="model-effort-slider" type="range" min="0" max="2" step="1" value="1" aria-label="Niveau de performance du modèle" />
+                  </div>
+                  <p id="modelEffortHint" class="model-effort-hint">Adapte la profondeur de réflexion du modèle actif.</p>
+                  <div class="model-menu-bar">
+                    <span id="modelMenuCount" class="model-menu-count"></span>
+                    <button id="modelMenuToggle" class="model-more-btn" type="button" aria-expanded="false">Show more <svg class="i xs"><use href="#i-chevron-down"></use></svg></button>
+                  </div>
+                  <div id="modelMenuList" class="model-menu-list"></div>
+                </div>
+              </div>
+              <button id="stopBtn" class="btn danger hidden"><svg class="i sm"><use href="#i-square"></use></svg><span>Arrêter</span></button>
+              <button id="sendBtn" class="btn primary"><span>Envoyer</span><svg class="i sm"><use href="#i-arrow-up"></use></svg></button>
+            </div>
+          </div>
+          <p class="hint" id="composerHint">Entrée envoie, Maj+Entrée va à la ligne. Trombone : joins un fichier texte ou du code ; les blocs <code>```</code> sont rendus automatiquement.</p>
+        </div>
+      </section>
+
+      <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" tabindex="0"></div>
+
+      <section class="pane work-pane">
+        <div class="work-head">
+          <div class="segmented" role="tablist" aria-label="Vue">
+            <button data-view="live" class="active" role="tab"><svg class="i sm"><use href="#i-play"></use></svg><span>Aperçu</span></button>
+            <button data-view="code" role="tab"><svg class="i sm"><use href="#i-code"></use></svg><span>Code</span></button>
+            <button data-view="search" role="tab"><svg class="i sm"><use href="#i-search"></use></svg><span>Recherches</span></button>
+          </div>
+          <div class="spacer"></div>
+          <div class="device-toggle" role="group" aria-label="Taille de l’aperçu">
+            <button data-device="desktop" class="active" title="Bureau" aria-label="Bureau"><svg class="i sm"><use href="#i-monitor"></use></svg></button>
+            <button data-device="mobile" title="Mobile" aria-label="Mobile"><svg class="i sm"><use href="#i-smartphone"></use></svg></button>
+          </div>
+          <button id="refreshBtn" class="icon-btn small" title="Rafraîchir la vue" aria-label="Rafraîchir"><svg class="i sm"><use href="#i-refresh"></use></svg></button>
+          <button id="openTabBtn" class="icon-btn small" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet"><svg class="i sm"><use href="#i-external"></use></svg></button>
+          <button id="hideWorkBtn" class="icon-btn small" title="Masquer le panneau (aperçu, code et recherches)" aria-label="Masquer le panneau de travail"><svg class="i sm"><use href="#i-panel-collapse"></use></svg></button>
+        </div>
+
+        <div class="work-body">
+          <div class="view live-view" id="liveView">
+            <div class="preview-stage" id="previewStage">
+              <div class="browser-window">
+                <div class="browser-chrome">
+                  <span class="traffic" aria-hidden="true"><i class="red"></i><i class="yellow"></i><i class="green"></i></span>
+                  <div class="browser-url">
+                    <svg class="i xs" aria-hidden="true"><use href="#i-globe"></use></svg>
+                    <label class="sr-only" for="previewUrl">URL de l’aperçu</label>
+                    <input id="previewUrl" spellcheck="false" aria-label="URL de l’aperçu" />
+                  </div>
+                  <span class="chrome-end" aria-hidden="true"></span>
+                </div>
+                <div class="browser-view">
+                  <iframe id="previewFrame" title="Aperçu de l’application" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin allow-downloads"></iframe>
+                  <div class="empty-state" id="previewEmpty">
+                    <span class="empty-icon"><svg class="i lg"><use href="#i-play"></use></svg></span>
+                    <h3>Rien à afficher pour l’instant</h3>
+                    <p>Demande une app dans le chat : l’aperçu apparaît ici dès le premier fichier écrit.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="view code-view hidden" id="codeView">
+            <div class="tabs" role="tablist" aria-label="Code">
+              <button data-tab="files" class="active" role="tab"><svg class="i sm"><use href="#i-file-code"></use></svg><span>Fichiers</span></button>
+              <button data-tab="terminal" role="tab"><svg class="i sm"><use href="#i-terminal"></use></svg><span>Terminal</span><span class="tab-badge hidden" id="termBadge"></span></button>
+              <button data-tab="console" role="tab"><svg class="i sm"><use href="#i-logs"></use></svg><span>Console</span><span class="tab-badge hidden" id="consoleBadge"></span></button>
+              <button data-tab="journal" role="tab"><svg class="i sm"><use href="#i-history"></use></svg><span>Journal</span></button>
+            </div>
+
+            <div class="tab-body">
+              <div class="tab-panel files-panel active" data-panel="files">
+                <aside class="file-tree" id="fileTree" aria-label="Arborescence des fichiers"></aside>
+                <div class="editor-wrap">
+                  <div class="editor-bar">
+                    <span id="editorPath">Aucun fichier ouvert</span>
+                    <span id="editorDirty" class="dirty hidden" title="Modifications non enregistrées"></span>
+                    <div class="spacer"></div>
+                    <button id="newFileBtn" class="icon-btn small" title="Nouveau fichier" aria-label="Nouveau fichier"><svg class="i sm"><use href="#i-plus"></use></svg></button>
+                    <button id="deleteFileBtn" class="icon-btn small" title="Supprimer le fichier" aria-label="Supprimer le fichier"><svg class="i sm"><use href="#i-trash"></use></svg></button>
+                    <button id="saveFileBtn" class="btn subtle small">Enregistrer</button>
+                  </div>
+                  <textarea id="editor" spellcheck="false" placeholder="Sélectionne un fichier dans l’arborescence…"></textarea>
+                </div>
+              </div>
+
+              <div class="tab-panel terminal-panel" data-panel="terminal">
+                <div class="terminal">
+                  <div class="term-output" id="termOutput"></div>
+                  <form class="term-input" id="termForm">
+                    <span class="prompt-sig">$</span>
+                    <input id="termInput" autocomplete="off" spellcheck="false" placeholder="npm install · ls · node -v · npm run dev" />
+                  </form>
+                </div>
+              </div>
+
+              <div class="tab-panel console-panel" data-panel="console">
+                <div class="console" id="consoleOutput"></div>
+                <div class="console-bar">
+                  <span class="muted small">Console de l’aperçu — logs et erreurs</span>
+                  <div class="spacer"></div>
+                  <button id="clearConsoleBtn" class="btn subtle small">Vider</button>
+                </div>
+              </div>
+
+              <div class="tab-panel journal-panel" data-panel="journal">
+                <div class="journal" id="journal"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="view search-view hidden" id="searchView">
+            <div class="search-view-head">
+              <div>
+                <span class="search-view-eyebrow">Web de l’agent</span>
+                <h3>Recherches effectuées</h3>
+              </div>
+              <button id="clearSearchesBtn" class="btn subtle small" type="button">Vider</button>
+            </div>
+            <div class="search-list" id="searchList"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel-rail" aria-label="Panneaux de travail">
+        <button class="rail-btn" data-panel-toggle="preview" aria-pressed="true" title="Afficher ou masquer l’aperçu" aria-label="Aperçu"><svg class="i"><use href="#i-play"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="files" aria-pressed="false" title="Afficher ou masquer les fichiers" aria-label="Fichiers"><svg class="i"><use href="#i-file-code"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="terminal" aria-pressed="false" title="Afficher ou masquer le terminal" aria-label="Terminal"><svg class="i"><use href="#i-terminal"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="search" aria-pressed="false" title="Afficher ou masquer les recherches web" aria-label="Recherches"><svg class="i"><use href="#i-search"></use></svg></button>
+      </aside>
+    </main>
+
+    <footer class="statusbar">
+      <span class="status-item"><i class="dot" aria-hidden="true"></i><span id="statusMode">Mode PC</span></span>
+      <span id="statusPath" class="status-item mono">—</span>
+      <div class="spacer"></div>
+      <span id="statusFiles" class="status-item">0 fichier</span>
+      <span class="status-sep" aria-hidden="true"></span>
+      <span id="statusMcp" class="status-item">MCP : 0</span>
+      <span class="status-sep" aria-hidden="true"></span>
+      <span id="statusProvider" class="status-item">Supernova Engine</span>
+    </footer>
+  </div>
+
+  <!-- ── Nouveau projet ─────────────────────────────────────────────────── -->
+  <dialog id="newProjectDialog" class="dialog">
+    <form method="dialog" id="newProjectForm">
+      <h2>Nouveau projet</h2>
+      <p class="dialog-sub">Choisis où vit le projet : un dossier réel sur ta machine (dossier <code>Project - N</code> créé par défaut), ou le Cloud interne à Supernova IA, exportable en ZIP.</p>
+
+      <label class="field">
+        <span>Nom du projet</span>
+        <input id="npName" required maxlength="80" placeholder="Ex : Café Lumen" />
+      </label>
+
+      <fieldset class="radio-group">
+        <legend>Emplacement</legend>
+        <label class="radio">
+          <input type="radio" name="npMode" value="pc" checked />
+          <span class="radio-icon"><svg class="i"><use href="#i-monitor"></use></svg></span>
+          <span class="radio-text"><strong>Sur mon PC</strong><small>Un vrai dossier est créé sur le disque — <code>Project - N</code> si aucun chemin n’est indiqué.</small></span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="npMode" value="cloud" />
+          <span class="radio-icon"><svg class="i"><use href="#i-cloud"></use></svg></span>
+          <span class="radio-text"><strong>Dans le Cloud Supernova</strong><small>Dossier interne à Supernova IA, invisible dans tes dossiers, export en ZIP à la demande.</small></span>
+        </label>
+      </fieldset>
+
+      <label class="field" id="npRootRow">
+        <span>Dossier cible <em>(optionnel)</em></span>
+        <input id="npRoot" placeholder="Chemin absolu, ex : /Users/moi/Projets/mon-app" />
+        <span class="field-hint">Laisse vide : un dossier <code>Project - N</code> est créé dans le dossier de travail.</span>
+      </label>
+
+      <div class="dialog-actions">
+        <button value="cancel" class="btn subtle" formnovalidate>Annuler</button>
+        <button value="create" class="btn primary">Créer le projet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- ── Paramètres ─────────────────────────────────────────────────────── -->
+  <dialog id="settingsDialog" class="dialog wide">
+    <div class="dialog-head">
+      <h2>Paramètres</h2>
+      <button class="icon-btn small" id="settingsCloseBtn" aria-label="Fermer"><svg class="i sm"><use href="#i-x"></use></svg></button>
+    </div>
+
+    <div class="settings-layout">
+      <nav class="settings-nav" role="tablist">
+        <button data-section="ai" class="active"><svg class="i sm"><use href="#i-sparkles"></use></svg><span>Connexion IA</span></button>
+        <button data-section="agent"><svg class="i sm"><use href="#i-sliders"></use></svg><span>Agent</span></button>
+        <button data-section="mcp"><svg class="i sm"><use href="#i-plug"></use></svg><span>Serveurs MCP</span></button>
+        <button data-section="voice"><svg class="i sm"><use href="#i-sun"></use></svg><span>Affichage</span></button>
+        <button data-section="about"><svg class="i sm"><use href="#i-info"></use></svg><span>À propos</span></button>
+      </nav>
+
+      <div class="settings-body">
+        <section class="settings-section active" data-section-panel="ai">
+          <div class="section-head">
+            <h3>Fournisseur &amp; modèle</h3>
+            <p>Supernova parle à toutes les API compatibles OpenAI, plus Anthropic et Gemini. La clé est conservée dans <strong>ton navigateur</strong> et dans la sauvegarde locale de l’application ; elle n’est jamais envoyée ailleurs qu’au fournisseur choisi.</p>
+          </div>
+
+          <label class="field">
+            <span>Fournisseur</span>
+            <select id="setProvider"></select>
+          </label>
+          <p class="hint" id="providerHint"></p>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>URL de base</span>
+              <input id="setBaseUrl" spellcheck="false" placeholder="https://api.openai.com/v1" />
+            </label>
+            <label class="field">
+              <span>Modèle</span>
+              <input id="setModel" list="modelList" spellcheck="false" placeholder="gpt-4.1-mini" />
+              <datalist id="modelList"></datalist>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Clé d’API <em id="keyOptional"></em></span>
+            <input id="setApiKey" type="password" spellcheck="false" autocomplete="off" placeholder="sk-…" />
+          </label>
+
+          <div class="row">
+            <button id="btnLoadModels" class="btn subtle">Charger la liste des modèles</button>
+            <span id="connStatus" class="hint"></span>
+          </div>
+
+          <label class="field">
+            <span>Température <output id="tempValue">0.7</output></span>
+            <input id="setTemperature" type="range" min="0" max="1" step="0.05" value="0.7" />
+          </label>
+
+          <div class="callout">
+            <strong>Sans clé</strong> — le <em>Supernova Engine</em> embarqué fonctionne hors ligne : il génère 5 types de projets, modifie l’existant, répond aux questions techniques et cherche sur le web.
+          </div>
+        </section>
+
+        <section class="settings-section" data-section-panel="agent">
+          <div class="section-head">
+            <h3>Comportement de l’agent</h3>
+            <p>Contrôle ce que l’agent peut écrire et exécuter sans validation.</p>
+          </div>
+
+          <label class="switch-row">
+            <span><strong>Appliquer les fichiers automatiquement</strong><small>Sinon, l’agent propose les fichiers et tu valides.</small></span>
+            <input type="checkbox" id="setAutoApply" class="switch" />
+          </label>
+
+          <label class="switch-row">
+            <span><strong>Continuer après les outils MCP</strong><small>L’agent relance un tour avec les résultats des outils.</small></span>
+            <input type="checkbox" id="setAutoContinue" class="switch" />
+          </label>
+
+          <label class="field">
+            <span>Commandes shell</span>
+            <select id="setShellPolicy">
+              <option value="ask">Me demander avant chaque commande</option>
+              <option value="auto">Exécuter automatiquement</option>
+              <option value="never">Ne jamais exécuter</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Langue de réponse</span>
+            <select id="setLanguage">
+              <option value="français">Français</option>
+              <option value="english">English</option>
+              <option value="español">Español</option>
+              <option value="deutsch">Deutsch</option>
+              <option value="português">Português</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Instructions système personnalisées</span>
+            <textarea id="setSystemPrompt" rows="5" placeholder="Ex : toujours utiliser des fichiers séparés, commenter en français, éviter les dépendances…"></textarea>
+          </label>
+
+          <div class="callout">
+            <strong>Protocole d’action</strong> — l’agent écrit avec <code>&lt;file path="…"&gt;</code>, supprime avec <code>&lt;delete&gt;</code>, exécute avec <code>&lt;shell&gt;</code> et appelle MCP avec <code>&lt;mcp tool="…"&gt;</code>. Ce format fonctionne même avec les modèles sans <em>function calling</em>.
+          </div>
+        </section>
+
+        <section class="settings-section" data-section-panel="mcp">
+          <div class="section-head">
+            <h3>Serveurs MCP</h3>
+            <p>Model Context Protocol : connecte des outils externes (fichiers, base de données, GitHub, navigateur…). Transports <code>stdio</code> (commande locale) et <code>http</code> (Streamable HTTP).</p>
+          </div>
+
+          <div class="mcp-presets">
+            <button class="btn subtle small" data-mcp-preset="filesystem"><svg class="i sm"><use href="#i-plus"></use></svg>filesystem</button>
+            <button class="btn subtle small" data-mcp-preset="memory"><svg class="i sm"><use href="#i-plus"></use></svg>memory</button>
+            <button class="btn subtle small" data-mcp-preset="sequential-thinking"><svg class="i sm"><use href="#i-plus"></use></svg>sequential-thinking</button>
+            <button class="btn subtle small" data-mcp-preset="everything"><svg class="i sm"><use href="#i-plus"></use></svg>everything (démo)</button>
+          </div>
+
+          <div id="mcpList" class="mcp-list"></div>
+
+          <div class="row">
+            <button id="mcpAddBtn" class="btn subtle"><svg class="i sm"><use href="#i-plus"></use></svg>Ajouter un serveur</button>
+            <button id="mcpSaveBtn" class="btn primary">Enregistrer</button>
+            <button id="mcpRefreshBtn" class="btn subtle">Découvrir les outils</button>
+          </div>
+          <div id="mcpStatus" class="mcp-status"></div>
+        </section>
+
+        <section class="settings-section" data-section-panel="voice">
+          <div class="section-head">
+            <h3>Affichage &amp; vocal</h3>
+            <p>Style de l’interface, profondeur et préférences vocales.</p>
+          </div>
+
+          <div class="field">
+            <span id="themeStyleLabel">Style de thème</span>
+            <div class="theme-select" id="themeSelect">
+              <button id="themeSelectBtn" class="theme-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="themeStyleLabel themeSelectValue">
+                <span class="theme-swatch" id="themeSelectSwatch" data-style="default" aria-hidden="true"></span>
+                <span class="theme-select-value" id="themeSelectValue">Default theme</span>
+                <svg class="i sm theme-select-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+              </button>
+              <div class="theme-select-menu" id="themeSelectMenu" role="listbox" aria-labelledby="themeStyleLabel" hidden>
+                <button type="button" role="option" data-theme-style="default" aria-selected="true">
+                  <span class="theme-swatch" data-style="default" aria-hidden="true"></span>
+                  <span class="theme-option-copy"><strong>Default theme</strong><small>Graphite, traits fins, accent chaud.</small></span>
+                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
+                </button>
+                <button type="button" role="option" data-theme-style="glass" aria-selected="false">
+                  <span class="theme-swatch" data-style="glass" aria-hidden="true"></span>
+                  <span class="theme-option-copy"><strong>Liquid glass theme</strong><small>Surfaces translucides et flou d’arrière-plan.</small></span>
+                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
+                </button>
+                <button type="button" role="option" data-theme-style="minimal" aria-selected="false">
+                  <span class="theme-swatch" data-style="minimal" aria-hidden="true"></span>
+                  <span class="theme-option-copy"><strong>Minimalist theme</strong><small>Sans ombres, sans flou ni profondeur 3D.</small></span>
+                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="hint">Le style se combine avec le mode clair ou sombre choisi par le bouton soleil / lune de la barre supérieure.</p>
+
+          <label class="field">
+            <span>Langue de dictée</span>
+            <select id="setVoiceLang">
+              <option value="fr-FR">Français (France)</option>
+              <option value="fr-CA">Français (Canada)</option>
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="es-ES">Español</option>
+              <option value="de-DE">Deutsch</option>
+            </select>
+          </label>
+
+          <label class="switch-row">
+            <span><strong>Lire les réponses à voix haute</strong><small>Synthèse vocale du navigateur, automatiquement après chaque réponse.</small></span>
+            <input type="checkbox" id="setAutoSpeak" class="switch" />
+          </label>
+
+          <div class="callout">
+            La dictée repose sur la <strong>Web Speech API</strong> : Chrome et Edge la prennent en charge nativement, Firefox ne supporte pas encore la reconnaissance vocale (la lecture, elle, fonctionne partout).
+          </div>
+
+          <details class="theme-guide">
+            <summary>Créer ton propre thème — résumé du tuto</summary>
+            <ol>
+              <li>Ouvre <code>public/css/app.css</code> : tout le thème est piloté par les variables de <code>:root</code> (fonds, texte, accent, bordures, ombres).</li>
+              <li>Crée un bloc <code>:root[data-style="mon-theme"]</code> et redéfinis les variables utiles, y compris le relief (<code>--elev-1</code>, <code>--edge-light</code>, <code>--window-elev</code>).</li>
+              <li>Ajoute une option dans le menu <code>#themeSelectMenu</code> (un bouton <code>data-theme-style</code>).</li>
+              <li>Dans <code>public/js/settings.js</code>, applique le choix avec <code>document.documentElement.dataset.style = value</code> et enregistre-le avec <code>saveSettings({ themeStyle: value })</code>.</li>
+              <li>Teste le thème en clair et en sombre, vérifie les contrastes, puis recharge : le choix doit rester.</li>
+            </ol>
+            <pre><code>:root[data-style="mon-theme"] {
+  --bg: #101014;
+  --panel: #17171d;
+  --accent: #7c8cff;
+  --line: #2a2a34;
+}</code></pre>
+          </details>
+
+          <div class="row">
+            <button id="resetSettingsBtn" class="btn subtle danger">Réinitialiser mes réglages</button>
+          </div>
+        </section>
+
+        <section class="settings-section" data-section-panel="about">
+          <div class="section-head">
+            <h3>Supernova IA <span class="pill">v1.0.0</span></h3>
+            <p>Agent de code local : la boucle d’action d’un Claude Code, l’aperçu instantané d’un bolt.new.</p>
+          </div>
+          <ul class="about-list">
+            <li><strong>Multi-API</strong> — OpenAI, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Anthropic, Gemini, Ollama, LM Studio, vLLM…</li>
+            <li><strong>MCP</strong> — serveurs stdio et HTTP, outils exposés à l’agent.</li>
+            <li><strong>Aperçu</strong> — app live, code éditable, terminal, console, journal.</li>
+            <li><strong>PC / Cloud</strong> — dossier réel ou stockage interne Supernova avec export ZIP.</li>
+            <li><strong>Vocal</strong> — dictée et synthèse vocale.</li>
+            <li><strong>Local d’abord</strong> — clés dans le navigateur, projets sur ta machine.</li>
+          </ul>
+          <div id="aboutDirs" class="about-dirs"></div>
+          <div class="callout warn">
+            Le terminal et l’agent exécutent de vraies commandes shell. Ne lance jamais Supernova sur un projet auquel tu ne ferais pas confiance à une IA, et garde <code>HOST=127.0.0.1</code> pour rester en local.
+          </div>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Aide ───────────────────────────────────────────────────────────── -->
+  <dialog id="helpDialog" class="dialog wide">
+    <div class="dialog-head">
+      <h2>Bienvenue dans Supernova IA</h2>
+      <button class="icon-btn small" id="helpCloseBtn" aria-label="Fermer"><svg class="i sm"><use href="#i-x"></use></svg></button>
+    </div>
+    <div class="help-body">
+      <div class="help-grid">
+        <article>
+          <span class="help-icon"><svg class="i"><use href="#i-sparkles"></use></svg></span>
+          <h3>Branche un modèle, ou pas</h3>
+          <p>Sans clé, le <strong>Supernova Engine</strong> local génère des sites, to-do, calculatrices, jeux et apps météo. Avec une clé (Paramètres → Connexion IA), tu débloques GPT, Claude, Gemini, Ollama…</p>
+        </article>
+        <article>
+          <span class="help-icon"><svg class="i"><use href="#i-monitor"></use></svg></span>
+          <h3>Choisis PC ou Cloud</h3>
+          <p><strong>PC</strong> écrit un vrai dossier via le serveur Node. <strong>Cloud</strong> écrit dans un dossier interne à Supernova IA et propose un ZIP.</p>
+        </article>
+        <article>
+          <span class="help-icon"><svg class="i"><use href="#i-code"></use></svg></span>
+          <h3>Regarde le résultat</h3>
+          <p>La bascule <strong>Aperçu / Code</strong> passe de l’app au code (fichiers, terminal, console, journal). L’aperçu se rafraîchit à chaque fichier.</p>
+        </article>
+        <article>
+          <span class="help-icon"><svg class="i"><use href="#i-mic"></use></svg></span>
+          <h3>Parle-lui</h3>
+          <p>Le micro dicte ton prompt, le haut-parleur lit les réponses. Tout passe par les API du navigateur.</p>
+        </article>
+      </div>
+      <h3>Raccourcis</h3>
+      <table class="shortcuts">
+        <tr><td><kbd>Entrée</kbd></td><td>Envoyer le message</td></tr>
+        <tr><td><kbd>Maj</kbd> + <kbd>Entrée</kbd></td><td>Aller à la ligne sans envoyer</td></tr>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Enregistrer le fichier ouvert</td></tr>
+        <tr><td><kbd>Échap</kbd></td><td>Arrêter la génération en cours</td></tr>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Fermer les fenêtres</td></tr>
+      </table>
+      <h3>Bon à savoir</h3>
+      <ul class="help-list">
+        <li>Un projet <strong>framework</strong> (React, Vue…) ne s’affiche pas tel quel : lance <code>npm install</code> puis <code>npm run dev</code> dans le Terminal, et mets l’URL du serveur de dev dans la barre d’aperçu.</li>
+        <li>Les serveurs MCP se configurent dans <strong>Paramètres → Serveurs MCP</strong>, avec une commande et ses arguments.</li>
+        <li>Le mode Cloud écrit les fichiers dans <code>data/cloud</code>, un dossier interne à Supernova IA : ils sont disponibles dans l’éditeur, le terminal et le ZIP, sans apparaître dans tes dossiers.</li>
+      </ul>
+    </div>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

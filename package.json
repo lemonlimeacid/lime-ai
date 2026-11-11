@@ -1,0 +1,92 @@
+{
+  "name": "supernova-ia",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Supernova IA",
+  "type": "module",
+  "description": "Supernova IA — agent de code local (Claude Code + bolt.new), multi-API, MCP, aperçu live, mode PC/Cloud, vocal, desktop Electron.",
+  "main": "desktop/main.cjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "desktop": "electron .",
+    "icons": "node scripts/make-icons.mjs",
+    "dist": "npm run dist:linux",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist:flatpak": "electron-builder --linux flatpak",
+    "dist:win": "electron-builder --win nsis portable",
+    "dist:mac": "electron-builder --mac dmg zip"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^45.3.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "ia.supernova.desktop",
+    "productName": "Supernova IA",
+    "copyright": "Supernova IA",
+    "asar": true,
+    "compression": "normal",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/**/*",
+      "server/**/*",
+      "public/**/*",
+      "build/icon.png",
+      "package.json",
+      "!data/**",
+      "!workspaces/**",
+      "!artifacts/**",
+      "!release/**",
+      "!**/*.log",
+      "!**/*.map"
+    ],
+    "extraMetadata": {
+      "main": "desktop/main.cjs"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "synopsis": "Agent de code local avec aperçu live",
+      "description": "Supernova IA — agent de code local, MCP, aperçu live et mode PC/Cloud."
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.icns",
+      "identity": null
+    },
+    "flatpak": {
+      "runtime": "org.freedesktop.Platform",
+      "runtimeVersion": "24.08",
+      "base": "org.electronjs.Electron2.BaseApp",
+      "baseVersion": "24.08",
+      "useWaylandFlags": true
+    }
+  }
+}
