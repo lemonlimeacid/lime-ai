@@ -224,6 +224,7 @@
                 <button id="modelPickerBtn" class="model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="modelPickerMenu" title="Active model — choose a model">
                   <svg class="i sm" aria-hidden="true"><use href="#i-cpu"></use></svg>
                   <span id="modelPickerLabel" class="model-trigger-label">supernova-mini</span>
+                  <span id="modelPickerPriceBadge" class="model-price-badge" hidden></span>
                   <svg class="i xs model-trigger-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                 </button>
                 <div class="model-menu" id="modelPickerMenu" role="dialog" aria-label="Model and performance" hidden>
@@ -233,12 +234,18 @@
                   </div>
                   <div class="model-menu-current">
                     <span id="modelMenuActiveName" class="model-menu-current-name">supernova-mini</span>
+                    <span id="modelMenuActiveBadge" class="model-price-badge" hidden></span>
                     <span id="modelMenuDefaultBadge" class="model-default-badge">Default</span>
                     <span class="spacer"></span>
                     <button id="modelMenuToggle" class="model-more-btn" type="button" aria-expanded="false">Show more <svg class="i xs"><use href="#i-chevron-down"></use></svg></button>
                   </div>
                   <div id="modelMenuList" class="model-menu-list" hidden></div>
                   <div id="modelMenuEmpty" class="model-menu-empty" hidden>No API connected. Open Settings → AI connection to add a key.</div>
+                  <div class="model-menu-spend">
+                    <span>Estimated API spend</span>
+                    <strong id="modelMenuSpend">$0.00</strong>
+                  </div>
+                  <div id="modelMenuSpendDetail" class="model-menu-spend-detail">No calls recorded yet.</div>
                 </div>
               </div>
               <button id="stopBtn" class="btn danger hidden"><svg class="i sm"><use href="#i-square"></use></svg><span>Stop</span></button>
@@ -399,6 +406,8 @@
       <span class="status-sep" aria-hidden="true"></span>
       <span id="statusMcp" class="status-item">MCP: 0</span>
       <span class="status-sep" aria-hidden="true"></span>
+      <span id="statusSpend" class="status-item" title="Estimated API spend">Est. spend: $0.00</span>
+      <span class="status-sep" aria-hidden="true"></span>
       <span id="statusProvider" class="status-item">Supernova Engine</span>
     </footer>
   </div>
@@ -428,11 +437,14 @@
         </label>
       </fieldset>
 
-      <label class="field" id="npRootRow">
-        <span>Target folder <em>(optional)</em></span>
-        <input id="npRoot" placeholder="Absolute path, e.g. /Users/me/Projects/my-app" />
-        <span class="field-hint">Leave empty: a <code>Project - N</code> folder is created in the working directory.</span>
-      </label>
+      <div class="field" id="npRootRow">
+        <label for="npRoot">Target folder <em>(optional)</em></label>
+        <div class="field-row">
+          <input id="npRoot" placeholder="Absolute path, e.g. /Users/me/Projects/my-app" />
+          <button type="button" id="npBrowse" class="btn subtle" hidden>Browse…</button>
+        </div>
+        <span class="field-hint" id="npRootHint">Choose a folder on your computer, or leave empty: a <code>Project - N</code> folder is created in the working directory.</span>
+      </div>
 
       <div class="dialog-actions">
         <button value="cancel" class="btn subtle" formnovalidate>Cancel</button>
@@ -476,7 +488,7 @@
               <input id="setBaseUrl" spellcheck="false" placeholder="https://api.openai.com/v1" />
             </label>
             <label class="field">
-              <span>Model</span>
+              <span>Model <span id="setModelBadge" class="model-price-badge" hidden></span></span>
               <input id="setModel" list="modelList" spellcheck="false" placeholder="gpt-4.1-mini" />
               <datalist id="modelList"></datalist>
             </label>
@@ -651,7 +663,7 @@
 
         <section class="settings-section" data-section-panel="about">
           <div class="section-head">
-            <h3>Supernova AI <span class="pill">v1.0.1</span></h3>
+            <h3>Supernova AI <span class="pill">v1.0.2</span></h3>
             <p>Local coding agent: the action loop of Claude Code, the instant preview of bolt.new.</p>
           </div>
           <ul class="about-list">

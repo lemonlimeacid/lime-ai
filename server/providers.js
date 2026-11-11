@@ -230,6 +230,24 @@ async function readError(response) {
   return `Provider error ${response.status}.${hint}${detail ? ` — ${String(detail).slice(0, 400)}` : ''}`;
 }
 
+function estimateTokens(text) {
+  return Math.max(1, Math.ceil(String(text || '').length / 4));
+}
+
+function estimateUsage({ preset, model, system, messages, completion }) {
+  const prompt = [
+    system,
+    ...messages.map((message) => `${message.role}: ${message.content}`),
+  ].join('\n');
+  return {
+    provider: preset.id,
+    model: model || preset.models[0],
+    promptTokens: estimateTokens(prompt),
+    completionTokens: estimateTokens(completion),
+    estimated: true,
+  };
+}
+
 function mergeRoles(messages) {
   const out = [];
   for (const message of messages) {
@@ -442,6 +460,15 @@ export async function streamChat(params, handlers = {}) {
   const preset = getPreset(params.provider);
   const messages = (params.messages || []).map((m) => ({ role: m.role, content: m.content }));
   const system = params.system || 'You are a helpful assistant.';
+  const reportUsage = (completion) => {
+    handlers.onUsage?.(estimateUsage({
+      preset,
+      model: params.model || preset.models[0],
+      system,
+      messages,
+      completion,
+    }));
+  };
 
   if (preset.kind === 'local') {
     let full = '';
@@ -459,6 +486,7 @@ export async function streamChat(params, handlers = {}) {
       full += chunk;
       handlers.onDelta?.(chunk, 'text');
     }
+    reportUsage(full);
     return full;
   }
 
@@ -479,9 +507,12 @@ export async function streamChat(params, handlers = {}) {
     system,
   };
 
-  if (preset.kind === 'anthropic') return streamAnthropic(common, handlers.onDelta, handlers.signal);
-  if (preset.kind === 'google') return streamGoogle(common, handlers.onDelta, handlers.signal);
-  return streamOpenAI(common, handlers.onDelta, handlers.signal);
+  let full;
+  if (preset.kind === 'anthropic') full = await streamAnthropic(common, handlers.onDelta, handlers.signal);
+  else if (preset.kind === 'google') full = await streamGoogle(common, handlers.onDelta, handlers.signal);
+  else full = await streamOpenAI(common, handlers.onDelta, handlers.signal);
+  reportUsage(full);
+  return full;
 }
 
 export async function listModels({ provider, baseUrl, apiKey }) {
@@ -518,7 +549,7 @@ export async function listModels({ provider, baseUrl, apiKey }) {
   }
 }
 
-export async function enhancePrompt({ prompt, provider, model, apiKey, baseUrl, temperature }) {
+export async function enhancePrompt({ prompt, provider, model, apiKey, baseUrl, temperature, onUsage }) {
   const preset = getPreset(provider);
   if (preset.kind === 'local') return localUpgradePrompt(prompt);
 
@@ -535,7 +566,7 @@ export async function enhancePrompt({ prompt, provider, model, apiKey, baseUrl, 
       messages: [{ role: 'user', content: prompt }],
       settings: {},
     },
-    {}
+    { onUsage }
   );
   return text.trim() || localUpgradePrompt(prompt);
 }

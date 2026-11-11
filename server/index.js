@@ -86,13 +86,13 @@ function asArray(value) {
 /* ── API système ─────────────────────────────────────────────────────────── */
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, version: '1.0.1', uptime: process.uptime() });
+  res.json({ ok: true, version: '1.0.2', uptime: process.uptime() });
 });
 
 app.get('/api/config', (req, res) => {
   res.json({
     app: 'Supernova AI',
-    version: '1.0.1',
+    version: '1.0.2',
     shellEnabled: !SHELL_DISABLED,
     workspacesDir: store.WORKSPACES_DIR,
     dataDir: store.DATA_DIR,
@@ -425,14 +425,16 @@ app.post('/api/enhance', async (req, res) => {
   try {
     const { prompt, settings = {} } = req.body || {};
     if (!String(prompt || '').trim()) return res.status(400).json({ error: 'Empty prompt' });
+    let usage = null;
     const enhanced = await enhancePrompt({
       prompt,
       provider: settings.provider,
       model: settings.model,
       apiKey: settings.apiKey,
       baseUrl: settings.baseUrl,
+      onUsage: (value) => { usage = value; },
     });
-    res.json({ prompt: enhanced });
+    res.json({ prompt: enhanced, usage });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

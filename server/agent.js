@@ -402,6 +402,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
         {
           signal,
           onSearch: (search) => emit({ type: 'search', ...search }),
+          onUsage: (usage) => emit({ type: 'usage', ...usage }),
           onDelta: (delta, kind) => {
             if (kind === 'reasoning') {
               emit({ type: 'reasoning', text: delta });

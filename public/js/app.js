@@ -8,6 +8,7 @@ import { initSettings } from './settings.js';
 import { initThreads } from './threads.js';
 import { initSuperAgents } from './superagents.js';
 import { initGithub } from './github.js';
+import { initUsageTracking } from './pricing.js';
 
 let splitterDragging = false;
 
@@ -28,6 +29,7 @@ async function boot() {
   initTerminal();
   initChat();
   initSettings();
+  initUsageTracking();
   initThreads();
   initSuperAgents();
   initGithub();
@@ -246,6 +248,27 @@ function bindChrome() {
   $('#modeCloudBtn').addEventListener('click', () => switchMode('cloud'));
 
   $('#downloadZipBtn').addEventListener('click', downloadZip);
+
+  const browseBtn = $('#npBrowse');
+  if (browseBtn) {
+    if (window.supernovaDesktop?.chooseProjectFolder) {
+      browseBtn.hidden = false;
+      browseBtn.addEventListener('click', async () => {
+        browseBtn.disabled = true;
+        try {
+          const selected = await window.supernovaDesktop.chooseProjectFolder($('#npRoot').value.trim());
+          if (selected) {
+            $('#npRoot').value = selected;
+            $('#npRoot').focus();
+          }
+        } catch (error) {
+          toast(`Cannot open the folder picker: ${error.message}`, 'err', 5000);
+        } finally {
+          browseBtn.disabled = false;
+        }
+      });
+    }
+  }
 
   const dialog = $('#newProjectDialog');
   dialog.addEventListener('close', async () => {

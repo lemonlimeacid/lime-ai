@@ -1908,6 +1908,7 @@ kbd {
 .statusbar .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); flex: none; }
 #statusMode { color: var(--text-2); font-weight: 500; }
 #statusPath { max-width: 40vw; font-family: var(--mono); font-size: 10px; }
+#statusSpend { color: var(--text-2); font-variant-numeric: tabular-nums; }
 .status-sep { width: 1px; height: 11px; background: var(--line); flex: none; }
 
 /* ── Dialogues ─────────────────────────────────────────────────────────── */
@@ -1961,7 +1962,17 @@ kbd {
   font-weight: 600;
   color: var(--text-2);
 }
+.field > label {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.field > label em { font-style: normal; font-weight: 400; color: var(--muted-2); }
 .field > span em { font-style: normal; font-weight: 400; color: var(--muted-2); }
+.field-row { display: flex; align-items: center; gap: 8px; }
+.field-row > input { flex: 1; min-width: 0; }
+.field-row .btn { flex: none; height: 34px; }
 /* Un helper passé dans un <span> ne doit pas hériter du flex du libellé. */
 .field > span.field-hint {
   display: block;
@@ -2926,6 +2937,60 @@ input.switch::after {
   color: var(--text-2);
   font-size: 9.2px;
   line-height: 1.55;
+}
+.model-price-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-height: 15px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-3);
+  color: var(--muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.model-price-badge.free {
+  border-color: rgba(104, 211, 145, 0.32);
+  background: rgba(104, 211, 145, 0.1);
+  color: var(--ok);
+}
+.model-price-badge.paid {
+  border-color: rgba(232, 175, 90, 0.32);
+  background: rgba(232, 175, 90, 0.1);
+  color: var(--warn);
+}
+.model-trigger .model-price-badge { margin-left: 1px; }
+.model-menu-current .model-price-badge { margin-left: 1px; }
+.field > span .model-price-badge { margin-left: 1px; }
+.model-menu-spend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 7px;
+  padding: 8px 8px 1px;
+  border-top: 1px solid var(--line);
+  color: var(--muted-2);
+  font-size: 10.2px;
+}
+.model-menu-spend strong {
+  color: var(--text-2);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.model-menu-spend-detail {
+  padding: 1px 8px 1px;
+  color: var(--muted-2);
+  font-size: 9.5px;
+  line-height: 1.4;
 }
 .model-more-btn {
   display: inline-flex;

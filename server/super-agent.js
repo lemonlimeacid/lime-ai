@@ -62,7 +62,7 @@ function parseAssignments(raw, agents) {
   });
 }
 
-async function complete({ settings, project, system, prompt, model, signal, temperature = 0.4 }) {
+async function complete({ settings, project, system, prompt, model, signal, temperature = 0.4, onUsage }) {
   let text = '';
   await streamChat(
     {
@@ -79,6 +79,7 @@ async function complete({ settings, project, system, prompt, model, signal, temp
     },
     {
       signal,
+      onUsage,
       onDelta: (delta, kind) => {
         if (kind === 'text') text += delta;
       },
@@ -110,6 +111,8 @@ export async function runSuperAgent({
 
   const userRequest = lastUserMessage(messages);
   if (!userRequest.trim()) throw new Error('No request to orchestrate.');
+
+  const reportUsage = (usage) => emit({ type: 'usage', ...usage });
 
   emit({
     type: 'super_started',
@@ -153,6 +156,7 @@ Split the work across the ${agents.length} agents.`;
         model: settings.model,
         signal,
         temperature: 0.2,
+        onUsage: reportUsage,
       });
       assignments = parseAssignments(planned, agents) || assignments;
     } catch (error) {
@@ -194,6 +198,7 @@ Be precise and concise (300 words max). If the request contains contradictory in
         model: agent.model,
         signal,
         temperature: 0.45,
+        onUsage: reportUsage,
         prompt: `Project: ${project.name}
 Tree:
 ${outline}

@@ -1,6 +1,7 @@
 /* Supernova IA — paramètres, fournisseurs, serveurs MCP */
 
 import { $, $$, h, api, state, bus, toast, saveSettings, icon, clearSettingsPersistence } from './core.js';
+import { applyPriceBadge } from './pricing.js';
 
 let mcpServers = [];
 
@@ -268,6 +269,7 @@ function syncFields() {
     $('#keyOptional').textContent = preset.noKey ? '(not needed here)' : '';
     fillModelList(preset.models || []);
   }
+  applyPriceBadge($('#setModelBadge'), settings.provider, settings.model);
 
   const dirs = $('#aboutDirs');
   if (dirs) {

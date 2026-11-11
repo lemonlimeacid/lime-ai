@@ -2,7 +2,7 @@
  * Lance le serveur Node embarqué sur un port libre, stocke les données dans
  * le dossier utilisateur de l'application, puis ouvre l'interface.
  */
-const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, shell, ipcMain } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const net = require('node:net');
@@ -180,6 +180,25 @@ function isLocalUrl(url) {
   }
 }
 
+ipcMain.handle('supernova:choose-project-folder', async (event, requestedPath) => {
+  const senderUrl = event.senderFrame?.url || event.sender.getURL();
+  if (!isLocalUrl(senderUrl)) return null;
+
+  const options = {
+    title: 'Choose project folder',
+    buttonLabel: 'Choose folder',
+    properties: ['openDirectory', 'createDirectory'],
+  };
+  const startPath = typeof requestedPath === 'string' ? requestedPath.trim() : '';
+  if (startPath && path.isAbsolute(startPath)) options.defaultPath = startPath;
+
+  const owner = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+  const result = owner
+    ? await dialog.showOpenDialog(owner, options)
+    : await dialog.showOpenDialog(options);
+  return result.canceled ? null : result.filePaths[0] || null;
+});
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -192,6 +211,7 @@ function createWindow() {
     autoHideMenuBar: true,
     icon: path.join(APP_ROOT, 'build', 'icon.png'),
     webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

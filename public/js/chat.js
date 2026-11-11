@@ -5,6 +5,7 @@ import {
   stripProtocol, providerLabel, icon, formatBytes, saveSettings,
 } from './core.js';
 import { refreshFiles, openFile } from './workspace.js';
+import { applyPriceBadge, recordUsage } from './pricing.js';
 
 let messagesEl = null;
 let promptEl = null;
@@ -29,7 +30,9 @@ let modelMenu = null;
 let modelMenuList = null;
 let modelMenuToggle = null;
 let modelMenuActiveName = null;
+let modelMenuActiveBadge = null;
 let modelMenuDefaultBadge = null;
+let modelPickerPriceBadge = null;
 let modelMenuEmpty = null;
 let modelEffortSlider = null;
 let modelEffortTicks = null;
@@ -421,7 +424,9 @@ function initModelPicker() {
   modelMenuList = $('#modelMenuList');
   modelMenuToggle = $('#modelMenuToggle');
   modelMenuActiveName = $('#modelMenuActiveName');
+  modelMenuActiveBadge = $('#modelMenuActiveBadge');
   modelMenuDefaultBadge = $('#modelMenuDefaultBadge');
+  modelPickerPriceBadge = $('#modelPickerPriceBadge');
   modelMenuEmpty = $('#modelMenuEmpty');
   modelEffortSlider = $('#modelEffortSlider');
   modelEffortTicks = $('#modelEffortTicks');
@@ -462,6 +467,7 @@ function syncModelPickerLabel() {
   const model = state.settings.model || 'Model';
   modelPickerLabel.textContent = model;
   modelPickerBtn.title = `${providerName(presetFor())} · ${model}`;
+  applyPriceBadge(modelPickerPriceBadge, state.settings.provider, state.settings.model);
 }
 
 function syncModelEffort() {
@@ -501,6 +507,13 @@ function renderModelMenu() {
     modelMenuActiveName.classList.toggle('muted', !activeGroup);
   }
   if (modelMenuDefaultBadge) modelMenuDefaultBadge.hidden = !activeGroup;
+  if (modelMenuActiveBadge) {
+    if (activeGroup) {
+      applyPriceBadge(modelMenuActiveBadge, state.settings.provider, state.settings.model || activeGroup.models[0]);
+    } else {
+      modelMenuActiveBadge.hidden = true;
+    }
+  }
   modelMenuToggle.hidden = !hasMore || mustExpand;
   modelMenuToggle.setAttribute('aria-expanded', String(expanded));
   modelMenuToggle.innerHTML = `${expanded ? 'Show less' : 'Show more'}<svg class="i xs" aria-hidden="true"><use href="#i-chevron-down"></use></svg>`;
@@ -525,8 +538,9 @@ function renderModelMenu() {
         title: `${group.name} · ${model}`,
         'aria-current': selected ? 'true' : null,
       });
-      item.innerHTML = `<span class="model-item-name"></span><svg class="i sm model-item-check" aria-hidden="true"><use href="#i-check"></use></svg>`;
+      item.innerHTML = `<span class="model-item-name"></span><span class="model-price-badge" hidden></span><svg class="i sm model-item-check" aria-hidden="true"><use href="#i-check"></use></svg>`;
       item.querySelector('.model-item-name').textContent = model;
+      applyPriceBadge(item.querySelector('.model-price-badge'), group.id, model);
       item.addEventListener('click', () => selectModel(group, model));
       section.append(item);
     }
@@ -1130,6 +1144,10 @@ function handleEvent(event, assistant) {
       recordSearchEvent(event);
       break;
 
+    case 'usage':
+      recordUsage(event);
+      break;
+
     case 'file_start':
       pushActivity(assistant, {
         key: `file:${event.path}`,
@@ -1405,6 +1423,7 @@ async function enhancePrompt() {
   enhanceBtn.innerHTML = icon('loader', 'sm spin');
   try {
     const result = await api.enhance(text);
+    if (result.usage) recordUsage(result.usage);
     promptEl.value = result.prompt;
     autoGrow();
     promptEl.focus();
