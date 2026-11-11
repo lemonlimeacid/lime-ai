@@ -51,7 +51,7 @@ function persist() {
       fs.writeFileSync(PROJECTS_FILE, JSON.stringify(projects, null, 2));
       fs.writeFileSync(VIRTUAL_FILE, JSON.stringify(virtualFiles));
     } catch (error) {
-      console.error('[store] sauvegarde impossible:', error.message);
+      console.error('[store] save failed:', error.message);
     }
   }, 250);
 }
@@ -72,7 +72,7 @@ function migrateLegacyWebProjects() {
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         fs.writeFileSync(abs, String(content ?? ''), 'utf8');
       } catch (error) {
-        console.error('[store] migration cloud:', error.message);
+        console.error('[store] cloud migration:', error.message);
       }
     }
     delete virtualFiles[project.id];
@@ -84,13 +84,13 @@ function migrateLegacyWebProjects() {
 migrateLegacyWebProjects();
 
 export function slugify(input) {
-  return String(input || 'projet')
+  return String(input || 'project')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
-    .slice(0, 48) || 'projet';
+    .slice(0, 48) || 'project';
 }
 
 /** Dossier Cloud interne, stable même si le projet est renommé. */
@@ -122,7 +122,7 @@ function resolveSafe(root, relPath) {
   const target = path.resolve(root, cleaned);
   const rel = relativeInside(root, target);
   if (!rel) {
-    const error = new Error('Chemin invalide');
+    const error = new Error('Invalid path');
     error.status = 400;
     throw error;
   }
@@ -144,7 +144,7 @@ export function getProject(id) {
 export function requireProject(id) {
   const project = getProject(id);
   if (!project) {
-    const error = new Error('Projet introuvable');
+    const error = new Error('Project not found');
     error.status = 404;
     throw error;
   }
@@ -173,7 +173,7 @@ function nextProjectFolder() {
       if (match) highest = Math.max(highest, Number(match[1]));
     }
   } catch (error) {
-    console.error('[store] lecture du dossier de travail:', error.message);
+    console.error('[store] reading workspace folder:', error.message);
   }
 
   let n = Math.max(projects.length, highest) + 1;
@@ -187,7 +187,7 @@ function nextProjectFolder() {
 
 export function createProject({ name, mode = 'pc', rootDir = '' } = {}) {
   const id = newId();
-  const cleanName = String(name || '').trim() || 'Nouveau projet';
+  const cleanName = String(name || '').trim() || 'New project';
   const project = {
     id,
     name: cleanName,
@@ -237,7 +237,7 @@ export function deleteProject(id) {
       try {
         fs.rmSync(dir, { recursive: true, force: true });
       } catch (error) {
-        console.error('[store] suppression cloud:', error.message);
+        console.error('[store] cloud deletion:', error.message);
       }
     }
   } else if (project.mode === 'pc' && project.rootDir) {
@@ -247,7 +247,7 @@ export function deleteProject(id) {
       try {
         fs.rmSync(project.rootDir, { recursive: true, force: true });
       } catch (error) {
-        console.error('[store] suppression dossier:', error.message);
+        console.error('[store] folder deletion:', error.message);
       }
     }
   }
@@ -362,7 +362,7 @@ export function readFile(id, relPath) {
     return fs.readFileSync(abs, 'utf8');
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'EISDIR') {
-      const notFound = new Error(`Fichier introuvable : ${rel}`);
+      const notFound = new Error(`File not found: ${rel}`);
       notFound.status = 404;
       throw notFound;
     }
@@ -374,7 +374,7 @@ export function writeFile(id, relPath, content) {
   const project = requireProject(id);
   if (typeof content !== 'string') content = String(content ?? '');
   if (Buffer.byteLength(content, 'utf8') > MAX_FILE_BYTES * 2) {
-    throw new Error('Fichier trop volumineux (max 4 Mo)');
+    throw new Error('File too large (4 MB max)');
   }
   const { rel, abs } = resolveSafe(projectRoot(project), relPath);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
@@ -389,7 +389,7 @@ export function deleteFile(id, relPath) {
   try {
     fs.rmSync(abs, { recursive: true, force: true });
   } catch (error) {
-    console.error('[store] suppression fichier:', error.message);
+    console.error('[store] file deletion:', error.message);
   }
   touch(id);
   return true;
@@ -422,8 +422,8 @@ export function ensureShellDir(id) {
 /** Arborescence texte compacte pour le prompt système. */
 export function projectOutline(id, limit = 200) {
   const files = listFiles(id).slice(0, limit);
-  if (!files.length) return '(projet vide)';
-  return files.map((f) => `${f.path} (${f.size} o)`).join('\n');
+  if (!files.length) return '(empty project)';
+  return files.map((f) => `${f.path} (${f.size} B)`).join('\n');
 }
 
 export function projectSnapshot(id, maxBytes = 60000) {

@@ -32,9 +32,9 @@ export function escapeHtml(value) {
 
 export function formatBytes(bytes) {
   const n = Number(bytes) || 0;
-  if (n < 1024) return `${n} o`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} Ko`;
-  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function debounce(fn, ms = 200) {
@@ -58,11 +58,11 @@ export function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime();
   if (!Number.isFinite(diff)) return '';
   const minutes = Math.round(diff / 60000);
-  if (minutes < 1) return "à l'instant";
-  if (minutes < 60) return `il y a ${minutes} min`;
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `il y a ${hours} h`;
-  return `il y a ${Math.round(hours / 24)} j`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
 
 /* ── Réglages ────────────────────────────────────────────────────────────── */
@@ -77,13 +77,17 @@ export const DEFAULT_SETTINGS = {
   autoApply: true,
   autoContinue: true,
   shellPolicy: 'ask',
-  language: 'français',
+  language: 'English',
   systemPrompt: '',
-  voiceLang: 'fr-FR',
+  voiceLang: 'en-US',
   autoSpeak: false,
   themeStyle: 'default',
   mode: 'pc',
   lastProjectId: null,
+  githubToken: '',
+  githubLogin: '',
+  githubAvatar: '',
+  githubRepos: {},
 };
 
 const SETTINGS_KEY = 'supernova.settings';
@@ -103,7 +107,7 @@ function writeLocal(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    toast('Stockage local saturé : les réglages ne sont pas sauvegardés.', 'warn');
+    toast('Local storage is full: settings were not saved.', 'warn');
     return false;
   }
 }
@@ -119,8 +123,10 @@ const pendingStatePatch = {};
 
 function normalizeSettings(raw) {
   const settings = { ...DEFAULT_SETTINGS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  // Compatibilité avec l'ancien mode « web », désormais stocké en Cloud interne.
+  // Compatibility with the legacy “web” mode, now stored in internal Cloud.
   if (settings.mode === 'web') settings.mode = 'cloud';
+  const languageAliases = { 'français': 'French', english: 'English', 'español': 'Spanish', deutsch: 'German', 'português': 'Portuguese' };
+  if (languageAliases[settings.language]) settings.language = languageAliases[settings.language];
   return settings;
 }
 
@@ -213,7 +219,7 @@ async function flushState({ keepalive = false } = {}) {
       return;
     }
     if (response.status === 413) {
-      toast('Sauvegarde trop volumineuse (max 12 Mo) : seules les données locales sont conservées.', 'warn', 7000);
+      toast('Backup is too large (12 MB max): only local data was kept.', 'warn', 7000);
       return;
     }
     retryStateSave(patch);
@@ -300,7 +306,7 @@ async function request(method, url, body) {
   const type = res.headers.get('content-type') || '';
   const data = type.includes('application/json') ? await res.json() : await res.text();
   if (!res.ok) {
-    const message = (data && data.error) || (typeof data === 'string' ? data : `Erreur ${res.status}`);
+    const message = (data && data.error) || (typeof data === 'string' ? data : `Error ${res.status}`);
     throw new Error(message);
   }
   return data;
@@ -354,7 +360,7 @@ function sanitizeMessages(messages) {
     role: message.role,
     content: String(message.content || '').slice(0, 60000),
     attachments: (Array.isArray(message.attachments) ? message.attachments : []).slice(0, 6).map((file) => ({
-      name: String(file.name || 'fichier').slice(0, 160),
+      name: String(file.name || 'file').slice(0, 160),
       size: Number(file.size) || 0,
       language: String(file.language || '').slice(0, 24),
       content: String(file.content || '').slice(0, 24000),
@@ -374,14 +380,34 @@ function sanitizeMessages(messages) {
   }));
 }
 
+function normalizeThreadKind(kind) {
+  if (kind === 'chat') return 'chat';
+  if (kind === 'super') return 'super';
+  return 'agent';
+}
+
+function defaultThreadTitle(kind) {
+  if (kind === 'chat') return 'New conversation';
+  if (kind === 'super') return 'Super agents project';
+  return 'New task';
+}
+
+function normalizeAgents(agents) {
+  return (Array.isArray(agents) ? agents : []).slice(0, 6).map((agent, index) => ({
+    id: String(agent?.id || `agent-${index + 1}`).slice(0, 80),
+    name: String(agent?.name || `Agent ${index + 1}`).trim().slice(0, 60) || `Agent ${index + 1}`,
+    model: String(agent?.model || '').trim().slice(0, 120),
+  })).filter((agent) => agent.model);
+}
+
 function titleFor(messages, kind = 'agent') {
   const first = (Array.isArray(messages) ? messages : []).find(
     (message) => message.role === 'user'
       && (String(message.content || '').trim() || message.attachments?.length)
   );
-  if (!first) return kind === 'chat' ? 'Nouvelle conversation' : 'Nouvelle tâche';
+  if (!first) return defaultThreadTitle(kind);
   const clean = String(first.content || '').replace(/\s+/g, ' ').trim()
-    || `Fichier joint : ${first.attachments?.[0]?.name || 'fichier'}`;
+    || `Attached file: ${first.attachments?.[0]?.name || 'file'}`;
   return clean.length > 48 ? `${clean.slice(0, 48)}…` : clean;
 }
 
@@ -390,10 +416,16 @@ let threadStoreCache = null;
 function normalizeThreadStore(raw) {
   const source = raw && typeof raw === 'object' ? raw : {};
   const threads = Array.isArray(source.threads)
-    ? source.threads.slice(-500).map((thread) => ({
-        ...thread,
-        messages: sanitizeMessages(thread.messages),
-      }))
+    ? source.threads.slice(-500).map((thread) => {
+        const kind = normalizeThreadKind(thread.kind);
+        const normalized = {
+          ...thread,
+          kind,
+          messages: sanitizeMessages(thread.messages),
+        };
+        if (kind === 'super') normalized.agents = normalizeAgents(thread.agents);
+        return normalized;
+      })
     : [];
   const activeByProject = source.activeByProject && typeof source.activeByProject === 'object'
     ? source.activeByProject
@@ -472,11 +504,13 @@ export function ensureThread(projectId, kind = 'agent') {
       .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)))[0];
   }
   if (!thread) {
+    const normalizedKind = normalizeThreadKind(kind);
     thread = {
       id: newThreadId(),
       projectId,
-      title: kind === 'chat' ? 'Nouvelle conversation' : 'Nouvelle tâche',
-      kind: kind === 'chat' ? 'chat' : 'agent',
+      title: defaultThreadTitle(normalizedKind),
+      kind: normalizedKind,
+      ...(normalizedKind === 'super' ? { agents: [] } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       messages: [],
@@ -488,21 +522,38 @@ export function ensureThread(projectId, kind = 'agent') {
   return thread;
 }
 
-export function createThread(projectId, { kind = 'chat', title } = {}) {
+export function createThread(projectId, { kind = 'chat', title, agents = [] } = {}) {
   if (!projectId) return null;
   const store = readThreadStore();
-  const normalizedKind = kind === 'chat' ? 'chat' : 'agent';
+  const normalizedKind = normalizeThreadKind(kind);
   const thread = {
     id: newThreadId(),
     projectId,
-    title: title || (normalizedKind === 'chat' ? 'Nouvelle conversation' : 'Nouvelle tâche'),
+    title: title || defaultThreadTitle(normalizedKind),
     kind: normalizedKind,
+    ...(normalizedKind === 'super' ? { agents: normalizeAgents(agents) } : {}),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     messages: [],
   };
   store.threads.push(thread);
   store.activeByProject[projectId] = thread.id;
+  writeThreadStore(store);
+  return thread;
+}
+
+export function updateThread(threadId, patch = {}) {
+  if (!threadId) return null;
+  const store = readThreadStore();
+  const thread = store.threads.find((item) => item.id === threadId);
+  if (!thread) return null;
+  if (typeof patch.title === 'string' && patch.title.trim()) {
+    thread.title = patch.title.trim().slice(0, 120);
+  }
+  if (Array.isArray(patch.agents)) {
+    thread.agents = normalizeAgents(patch.agents);
+  }
+  thread.updatedAt = new Date().toISOString();
   writeThreadStore(store);
   return thread;
 }
@@ -541,7 +592,7 @@ export function saveChat(projectId, messages) {
   const clean = sanitizeMessages(messages);
   thread.messages = clean;
   thread.updatedAt = new Date().toISOString();
-  const fallback = thread.kind === 'chat' ? 'Nouvelle conversation' : 'Nouvelle tâche';
+  const fallback = defaultThreadTitle(thread.kind);
   if (!thread.title || thread.title === fallback) {
     const title = titleFor(clean, thread.kind);
     if (title && title !== fallback) thread.title = title;
@@ -558,7 +609,7 @@ export function clearChat(projectId) {
   const thread = store.threads.find((item) => item.id === ensured.id);
   if (!thread) return null;
   thread.messages = [];
-  thread.title = thread.kind === 'chat' ? 'Nouvelle conversation' : 'Nouvelle tâche';
+  thread.title = defaultThreadTitle(thread.kind);
   thread.updatedAt = new Date().toISOString();
   writeThreadStore(store);
   return thread;
@@ -569,7 +620,7 @@ export function clearChat(projectId) {
 export async function hydrateServerState() {
   try {
     const response = await fetch(STATE_ENDPOINT, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Sauvegarde HTTP ${response.status}`);
+    if (!response.ok) throw new Error(`State backup HTTP ${response.status}`);
     const remote = await response.json();
 
     if (remote && typeof remote === 'object') {

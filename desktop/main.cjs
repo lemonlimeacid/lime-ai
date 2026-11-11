@@ -15,7 +15,12 @@ let serverPort = 0;
 let externalServer = false;
 let quitting = false;
 
-const APP_ROOT = path.join(__dirname, '..');
+// In a packaged build, keep the app root as a real directory. A previous
+// build pointed spawn() at resources/app.asar, which is a file, causing
+// `spawn ENOTDIR` on AppImage startup.
+const APP_ROOT = app.isPackaged
+  ? path.join(process.resourcesPath, 'app')
+  : path.join(__dirname, '..');
 
 function bindProbe(port) {
   return new Promise((resolve, reject) => {
@@ -55,7 +60,7 @@ function waitForServer(port, timeoutMs = 25000) {
     };
     const retry = () => {
       if (Date.now() - started > timeoutMs) {
-        return reject(new Error('Le serveur Supernova ne répond pas.'));
+        return reject(new Error('The Supernova server is not responding.'));
       }
       setTimeout(attempt, 220);
     };
@@ -73,7 +78,7 @@ function probeServer(port) {
         response.on('data', (chunk) => { body += chunk; });
         response.on('end', () => {
           try {
-            resolve(response.statusCode === 200 && JSON.parse(body).app === 'Supernova IA');
+            resolve(response.statusCode === 200 && JSON.parse(body).app === 'Supernova AI');
           } catch {
             resolve(false);
           }
@@ -111,6 +116,11 @@ async function startServer() {
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
   logStream.write(`\n--- ${new Date().toISOString()} · port ${serverPort} ---\n`);
 
+  const serverEntry = path.join(APP_ROOT, 'server', 'index.js');
+  if (!fs.existsSync(serverEntry)) {
+    throw new Error(`Server entry not found: ${serverEntry}`);
+  }
+
   const env = {
     ...process.env,
     PORT: String(serverPort),
@@ -121,32 +131,39 @@ async function startServer() {
     ELECTRON_RUN_AS_NODE: '1',
   };
 
-  serverProcess = spawn(process.execPath, [path.join(APP_ROOT, 'server', 'index.js')], {
-    cwd: APP_ROOT,
+  serverProcess = spawn(process.execPath, [serverEntry], {
+    // cwd must be a real directory, never a file such as app.asar.
+    cwd: userData,
     env,
     windowsHide: true,
     stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  const spawned = new Promise((resolve, reject) => {
+    serverProcess.once('spawn', resolve);
+    serverProcess.once('error', reject);
   });
 
   serverProcess.stdout.pipe(logStream);
   serverProcess.stderr.pipe(logStream);
 
   serverProcess.on('error', (error) => {
-    logStream.write(`[desktop] démarrage impossible: ${error.message}\n`);
+    logStream.write(`[desktop] startup failed: ${error.message}\n`);
   });
 
   serverProcess.on('exit', (code, signal) => {
-    logStream.write(`[desktop] serveur arrêté (${code ?? signal ?? 'inconnu'})\n`);
+    logStream.write(`[desktop] server stopped (${code ?? signal ?? 'unknown'})\n`);
     if (!quitting) {
       dialog.showErrorBox(
-        'Supernova IA',
-        `Le serveur local s'est arrêté (${code ?? signal ?? 'inconnu'}).\n\nConsulte le journal :\n${logPath}`
+        'Supernova AI',
+        `The local server stopped (${code ?? signal ?? 'unknown'}).\n\nCheck the log:\n${logPath}`
       );
       app.quit();
     }
   });
 
   try {
+    await spawned;
     await waitForServer(serverPort);
   } catch (error) {
     logStream.write(`[desktop] ${error.message}\n`);
@@ -171,7 +188,7 @@ function createWindow() {
     minHeight: 640,
     show: false,
     backgroundColor: '#0e0e0d',
-    title: 'Supernova IA',
+    title: 'Supernova AI',
     autoHideMenuBar: true,
     icon: path.join(APP_ROOT, 'build', 'icon.png'),
     webPreferences: {
@@ -245,7 +262,7 @@ if (!hasLock) {
       if (!(await useExistingSite())) await startServer();
       createWindow();
     } catch (error) {
-      dialog.showErrorBox('Supernova IA', error.message);
+      dialog.showErrorBox('Supernova AI', error.message);
       app.quit();
     }
 

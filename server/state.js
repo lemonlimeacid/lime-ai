@@ -81,7 +81,7 @@ function writeState(next) {
   fs.mkdirSync(STATE_DIR, { recursive: true });
   const payload = JSON.stringify(next, null, 2);
   if (Buffer.byteLength(payload, 'utf8') > MAX_STATE_BYTES) {
-    const error = new Error('Sauvegarde trop volumineuse (max 12 Mo).');
+    const error = new Error('Backup too large (12 MB max).');
     error.status = 413;
     throw error;
   }
@@ -89,7 +89,7 @@ function writeState(next) {
   try {
     if (fs.existsSync(STATE_FILE)) fs.copyFileSync(STATE_FILE, BACKUP_FILE);
   } catch (error) {
-    console.error('[state] copie de secours impossible:', error.message);
+    console.error('[state] backup copy failed:', error.message);
   }
 
   const tmp = `${STATE_FILE}.tmp`;
@@ -110,7 +110,7 @@ function writeState(next) {
       fs.chmodSync(STATE_FILE, 0o600);
       if (fs.existsSync(BACKUP_FILE)) fs.chmodSync(BACKUP_FILE, 0o600);
     } catch (error) {
-      console.error('[state] permissions non appliquées:', error.message);
+      console.error('[state] permissions not applied:', error.message);
     }
   }
 }
@@ -121,7 +121,7 @@ export function getState() {
 
 export function saveState(patch = {}) {
   if (!isObject(patch)) {
-    const error = new Error('Sauvegarde invalide.');
+    const error = new Error('Invalid backup.');
     error.status = 400;
     throw error;
   }
@@ -134,7 +134,7 @@ export function saveState(patch = {}) {
 
   if ('settings' in patch) {
     if (!isObject(patch.settings)) {
-      const error = new Error('Réglages invalides.');
+      const error = new Error('Invalid settings.');
       error.status = 400;
       throw error;
     }
@@ -143,7 +143,7 @@ export function saveState(patch = {}) {
 
   if ('threads' in patch) {
     if (!isObject(patch.threads) || !Array.isArray(patch.threads.threads)) {
-      const error = new Error('Conversations invalides.');
+      const error = new Error('Invalid conversations.');
       error.status = 400;
       throw error;
     }
@@ -152,7 +152,7 @@ export function saveState(patch = {}) {
 
   if ('ui' in patch) {
     if (!isObject(patch.ui)) {
-      const error = new Error('Préférences invalides.');
+      const error = new Error('Invalid preferences.');
       error.status = 400;
       throw error;
     }

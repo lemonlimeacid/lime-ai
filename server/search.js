@@ -33,7 +33,7 @@ function strip(html) {
 }
 
 async function duckduckgo(query) {
-  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&kl=fr-fr`;
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1&kl=us-en`;
   const data = await fetchJson(url);
   const results = [];
   if (data.AbstractText) {
@@ -62,7 +62,7 @@ async function duckduckgo(query) {
   return results;
 }
 
-async function wikipedia(query, lang = 'fr') {
+async function wikipedia(query, lang = 'en') {
   const search = await fetchJson(
     `https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=3&origin=*`
   ).catch(() => null);
@@ -78,7 +78,7 @@ async function wikipedia(query, lang = 'fr') {
           title: summary.title,
           url: summary.content_urls?.desktop?.page || `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(hit.title)}`,
           snippet: summary.extract,
-          source: 'Wikipédia',
+          source: 'Wikipedia',
         });
       }
     } catch {
@@ -90,7 +90,7 @@ async function wikipedia(query, lang = 'fr') {
 
 export async function searchWeb(query, { limit = 5 } = {}) {
   const clean = String(query || '').trim();
-  if (!clean) return { query: clean, results: [], note: 'Requête vide' };
+  if (!clean) return { query: clean, results: [], note: 'Empty query' };
 
   const settled = await Promise.allSettled([duckduckgo(clean), wikipedia(clean)]);
   const results = [];
@@ -108,6 +108,6 @@ export async function searchWeb(query, { limit = 5 } = {}) {
   return {
     query: clean,
     results: results.slice(0, limit),
-    note: results.length ? '' : "Aucun résultat trouvé (vérifie ta connexion réseau ou reformule la question).",
+    note: results.length ? '' : "No results found (check your network connection or rephrase the question).",
   };
 }

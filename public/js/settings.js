@@ -21,28 +21,28 @@ const MCP_PRESETS = {
     transport: 'stdio',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem', '.'],
-    note: 'Lecture/écriture de fichiers (adaptez le chemin).',
+    note: 'Read/write files (adjust the path).',
   },
   memory: {
     name: 'memory',
     transport: 'stdio',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-memory'],
-    note: 'Mémoire persistante en base de connaissances.',
+    note: 'Persistent knowledge-base memory.',
   },
   'sequential-thinking': {
     name: 'sequential-thinking',
     transport: 'stdio',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
-    note: 'Raisonnement structuré par étapes.',
+    note: 'Structured step-by-step reasoning.',
   },
   everything: {
     name: 'everything',
     transport: 'stdio',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-everything'],
-    note: 'Serveur de démonstration MCP (tous les types d’outils).',
+    note: 'MCP demo server (all tool types).',
   },
 };
 
@@ -104,7 +104,7 @@ export function initSettings() {
       saveSettings({ themeStyle: value });
       closeThemeMenu({ focus: true });
       toast(
-        value === 'glass' ? 'Liquid glass activé.' : value === 'minimal' ? 'Mode minimaliste activé.' : 'Thème par défaut activé.',
+        value === 'glass' ? 'Liquid glass enabled.' : value === 'minimal' ? 'Minimalist mode enabled.' : 'Default theme enabled.',
         'ok',
         2400
       );
@@ -194,7 +194,7 @@ export function initSettings() {
   $('#btnLoadModels').addEventListener('click', loadModels);
   $('#settingsCloseBtn').addEventListener('click', () => dialog.close());
   $('#resetSettingsBtn').addEventListener('click', async () => {
-    if (!confirm('Réinitialiser tous les réglages (clé d’API comprise) ?')) return;
+    if (!confirm('Reset all settings (including the API key)?')) return;
     await clearSettingsPersistence();
     localStorage.removeItem('supernova.settings');
     location.reload();
@@ -204,7 +204,7 @@ export function initSettings() {
   $('#mcpAddBtn').addEventListener('click', () => {
     mcpServers.push({
       id: `mcp-${Math.random().toString(36).slice(2, 7)}`,
-      name: 'nouveau-serveur',
+      name: 'new-server',
       transport: 'stdio',
       command: '',
       args: [],
@@ -233,7 +233,7 @@ export function initSettings() {
         enabled: true,
       });
       renderMcpCards();
-      toast(`${preset.name} ajouté — pense à adapter les arguments puis Enregistrer.`, 'ok', 4000);
+      toast(`${preset.name} added — adjust the arguments, then Save.`, 'ok', 4000);
     });
   }
 
@@ -257,26 +257,26 @@ function syncFields() {
   $('#setAutoApply').checked = settings.autoApply !== false;
   $('#setAutoContinue').checked = settings.autoContinue !== false;
   $('#setShellPolicy').value = settings.shellPolicy || 'ask';
-  $('#setLanguage').value = settings.language || 'français';
+  $('#setLanguage').value = settings.language || 'English';
   $('#setSystemPrompt').value = settings.systemPrompt || '';
-  $('#setVoiceLang').value = settings.voiceLang || 'fr-FR';
+  $('#setVoiceLang').value = settings.voiceLang || 'en-US';
   $('#setAutoSpeak').checked = Boolean(settings.autoSpeak);
 
   const preset = (state.config.providers || []).find((item) => item.id === settings.provider);
   if (preset) {
     $('#providerHint').textContent = preset.hint || '';
-    $('#keyOptional').textContent = preset.noKey ? '(inutile ici)' : '';
+    $('#keyOptional').textContent = preset.noKey ? '(not needed here)' : '';
     fillModelList(preset.models || []);
   }
 
   const dirs = $('#aboutDirs');
   if (dirs) {
     dirs.innerHTML = `
-      <div>Projets PC : <code>${escapeText(state.config.workspacesDir || '—')}</code></div>
-      <div>Cloud : stockage interne à Supernova IA (export ZIP)</div>
-      <div>Sauvegardes : <code>${escapeText(state.config.stateDir || '—')}</code></div>
-      <div>Données : <code>${escapeText(state.config.dataDir || '—')}</code></div>
-      <div>Formats acceptés : ${escapeText((state.config.formats || []).join(' · '))}</div>`;
+      <div>PC projects: <code>${escapeText(state.config.workspacesDir || '—')}</code></div>
+      <div>Cloud: Supernova internal storage (ZIP export)</div>
+      <div>Backups: <code>${escapeText(state.config.stateDir || '—')}</code></div>
+      <div>Data: <code>${escapeText(state.config.dataDir || '—')}</code></div>
+      <div>Accepted formats: ${escapeText((state.config.formats || []).join(' · '))}</div>`;
   }
 }
 
@@ -284,7 +284,7 @@ function applyProvider(providerId) {
   const preset = (state.config.providers || []).find((item) => item.id === providerId);
   if (!preset) return;
   $('#providerHint').textContent = preset.hint || '';
-  $('#keyOptional').textContent = preset.noKey ? '(inutile ici)' : '';
+  $('#keyOptional').textContent = preset.noKey ? '(not needed here)' : '';
   $('#setBaseUrl').value = preset.baseUrl || '';
   $('#setModel').value = preset.models?.[0] || '';
   fillModelList(preset.models || []);
@@ -295,7 +295,7 @@ function applyProvider(providerId) {
     model: preset.models?.[0] || '',
     reasoningEffort: effortLevels.includes('medium') ? 'medium' : effortLevels[0],
   });
-  toast(`${preset.label} sélectionné.`, 'ok', 2400);
+  toast(`${preset.label} selected.`, 'ok', 2400);
 }
 
 function fillModelList(models) {
@@ -306,19 +306,19 @@ function fillModelList(models) {
 
 async function loadModels() {
   const status = $('#connStatus');
-  status.textContent = 'Connexion…';
+  status.textContent = 'Connecting…';
   status.style.color = '';
   try {
     const result = await api.models();
-    const models = (result.models || []).filter((model) => !String(model).startsWith('Attention'));
-    const warning = (result.models || []).find((model) => String(model).startsWith('Attention'));
+    const models = (result.models || []).filter((model) => !String(model).startsWith('Warning'));
+    const warning = (result.models || []).find((model) => String(model).startsWith('Warning'));
     fillModelList(models);
     if (models.length) {
-      status.textContent = `${models.length} modèle(s) disponibles.`;
+      status.textContent = `${models.length} model(s) available.`;
       status.style.color = 'var(--ok)';
       if (!$('#setModel').value) $('#setModel').value = models[0];
     } else {
-      status.textContent = warning || 'Aucun modèle renvoyé.';
+      status.textContent = warning || 'No models returned.';
       status.style.color = 'var(--warn)';
     }
   } catch (error) {
@@ -332,7 +332,7 @@ async function loadModels() {
 async function loadMcp({ refresh = false } = {}) {
   const status = $('#mcpStatus');
   if (status) {
-    status.textContent = 'Découverte des serveurs et outils…';
+    status.textContent = 'Discovering servers and tools…';
     status.className = 'mcp-status';
   }
   try {
@@ -354,20 +354,20 @@ async function loadMcp({ refresh = false } = {}) {
       const servers = data.servers || [];
       status.innerHTML = '';
       if (!servers.length) {
-        status.append(h('div', { class: 'muted', text: 'Aucun serveur configuré pour l’instant.' }));
+        status.append(h('div', { class: 'muted', text: 'No servers configured yet.' }));
       }
       for (const server of servers) {
         const ok = server.status === 'ok';
         const label = ok
-          ? `${server.name} — ${server.tools?.length || 0} outil(s)${server.tools?.length ? ` : ${server.tools.map((tool) => tool.name).join(', ')}` : ''}`
-          : `${server.name} — ${server.error || 'erreur inconnue'}`;
+          ? `${server.name} — ${server.tools?.length || 0} tool(s)${server.tools?.length ? `: ${server.tools.map((tool) => tool.name).join(', ')}` : ''}`
+          : `${server.name} — ${server.error || 'unknown error'}`;
         const line = h('div', { class: ok ? 'ok' : 'err' });
         line.innerHTML = `${icon(ok ? 'check' : 'x', 'sm')}<span>${escapeText(label)}</span>`;
         status.append(line);
       }
       state.mcpTools = data.tools || [];
     }
-    if (refresh) toast('Outils MCP actualisés.', 'ok', 2600);
+    if (refresh) toast('MCP tools refreshed.', 'ok', 2600);
   } catch (error) {
     if (status) {
       status.className = 'mcp-status';
@@ -383,14 +383,14 @@ function renderMcpCards() {
   container.innerHTML = '';
 
   if (!mcpServers.length) {
-    container.append(h('div', { class: 'mcp-empty', text: 'Aucun serveur MCP. Ajoute un serveur ou utilise un exemple ci-dessus.' }));
+    container.append(h('div', { class: 'mcp-empty', text: 'No MCP servers. Add a server or use an example above.' }));
     return;
   }
 
   mcpServers.forEach((server, index) => {
     const card = h('div', { class: 'mcp-card' });
     const top = h('div', { class: 'mcp-top' });
-    const nameInput = h('input', { type: 'text', value: server.name, placeholder: 'nom du serveur' });
+    const nameInput = h('input', { type: 'text', value: server.name, placeholder: 'server name' });
     nameInput.addEventListener('input', () => { server.name = nameInput.value; });
     const transportSelect = h('select', {}, [
       h('option', { value: 'stdio' }, 'stdio'),
@@ -401,7 +401,7 @@ function renderMcpCards() {
       server.transport = transportSelect.value;
       renderMcpCards();
     });
-    const remove = h('button', { class: 'icon-btn small', type: 'button', title: 'Supprimer', html: icon('trash', 'sm') });
+    const remove = h('button', { class: 'icon-btn small', type: 'button', title: 'Delete', html: icon('trash', 'sm') });
     remove.addEventListener('click', () => {
       mcpServers.splice(index, 1);
       renderMcpCards();
@@ -411,11 +411,11 @@ function renderMcpCards() {
 
     const fields = h('div', { class: 'mcp-fields' });
     if (server.transport === 'http') {
-      const urlInput = h('input', { type: 'text', value: server.url, placeholder: 'https://exemple.com/mcp' });
+      const urlInput = h('input', { type: 'text', value: server.url, placeholder: 'https://example.com/mcp' });
       urlInput.addEventListener('input', () => { server.url = urlInput.value; });
       fields.append(urlInput);
     } else {
-      const commandInput = h('input', { type: 'text', value: server.command, placeholder: 'npx ou node ou python' });
+      const commandInput = h('input', { type: 'text', value: server.command, placeholder: 'npx or node or python' });
       commandInput.addEventListener('input', () => { server.command = commandInput.value; });
       const argsInput = h('input', { type: 'text', value: (server.args || []).join(' '), placeholder: '-y @modelcontextprotocol/server-filesystem .' });
       argsInput.addEventListener('input', () => {
@@ -425,7 +425,7 @@ function renderMcpCards() {
     }
     card.append(fields);
 
-    const envArea = h('textarea', { placeholder: 'Variables d’environnement (JSON), ex : {"API_KEY":"…"}' });
+    const envArea = h('textarea', { placeholder: 'Environment variables (JSON), e.g. {"API_KEY":"…"}' });
     envArea.value = server.envText || '{}';
     envArea.addEventListener('input', () => { server.envText = envArea.value; });
     card.append(envArea);
@@ -435,8 +435,8 @@ function renderMcpCards() {
     const checkbox = h('input', { type: 'checkbox' });
     checkbox.checked = server.enabled !== false;
     checkbox.addEventListener('change', () => { server.enabled = checkbox.checked; });
-    toggle.append(checkbox, document.createTextNode(' activé'));
-    const testButton = h('button', { class: 'btn subtle small', type: 'button' }, 'Tester');
+    toggle.append(checkbox, document.createTextNode(' enabled'));
+    const testButton = h('button', { class: 'btn subtle small', type: 'button' }, 'Test');
     testButton.addEventListener('click', () => testServer(server, testButton));
     bottom.append(toggle, h('div', { class: 'spacer' }), testButton);
     card.append(bottom);
@@ -462,7 +462,7 @@ async function testServer(server, button) {
         headers: {},
       },
     });
-    toast(`${escapeText(server.name)} — ${(result.tools || []).length} outil(s) : ${escapeText((result.tools || []).join(', '))}`, 'ok', 7000);
+    toast(`${escapeText(server.name)} — ${(result.tools || []).length} tool(s): ${escapeText((result.tools || []).join(', '))}`, 'ok', 7000);
   } catch (error) {
     toast(`${escapeText(server.name)} — ${escapeText(error.message)}`, 'err', 9000);
   } finally {
@@ -485,10 +485,10 @@ async function saveMcp() {
   }));
   try {
     await api.saveMcpServers(payload);
-    toast('Serveurs MCP enregistrés.', 'ok', 2600);
+    toast('MCP servers saved.', 'ok', 2600);
     await loadMcp({ refresh: true });
   } catch (error) {
-    toast(`Enregistrement impossible : ${escapeText(error.message)}`, 'err');
+    toast(`Unable to save: ${escapeText(error.message)}`, 'err');
   }
 }
 

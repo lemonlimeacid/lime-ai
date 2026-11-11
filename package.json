@@ -1,6 +1,6 @@
 {
   "name": "supernova-ia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "author": "Supernova IA",
   "type": "module",
@@ -32,7 +32,7 @@
     "appId": "ia.supernova.desktop",
     "productName": "Supernova IA",
     "copyright": "Supernova IA",
-    "asar": true,
+    "asar": false,
     "compression": "normal",
     "directories": {
       "output": "release",

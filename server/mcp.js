@@ -12,7 +12,7 @@ import { DATA_DIR } from './store.js';
 
 const CONFIG_FILE = path.join(DATA_DIR, 'mcp.json');
 const PROTOCOL_VERSION = '2024-11-05';
-const CLIENT_INFO = { name: 'supernova-ia', version: '1.0.0' };
+const CLIENT_INFO = { name: 'supernova-ia', version: '1.0.1' };
 
 let config = loadConfig();
 const connections = new Map(); // serverId -> connection | {error}
@@ -31,7 +31,7 @@ function loadConfig() {
 export function saveConfig(servers) {
   const clean = (Array.isArray(servers) ? servers : []).map((server, index) => ({
     id: String(server.id || `mcp-${index + 1}`).replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 40),
-    name: String(server.name || server.id || `Serveur ${index + 1}`).slice(0, 60),
+    name: String(server.name || server.id || `Server ${index + 1}`).slice(0, 60),
     transport: server.transport === 'http' ? 'http' : 'stdio',
     command: String(server.command || '').trim(),
     args: Array.isArray(server.args) ? server.args.map(String) : String(server.args || '').split(/\s+/).filter(Boolean),
@@ -64,7 +64,7 @@ class StdioConnection {
 
   async start() {
     const command = this.server.command;
-    if (!command) throw new Error('Commande MCP manquante');
+    if (!command) throw new Error('Missing MCP command');
     this.child = spawn(command, this.server.args || [], {
       env: { ...process.env, ...(this.server.env || {}) },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -81,7 +81,7 @@ class StdioConnection {
     this.child.on('exit', (code) => {
       this.status = code === 0 ? 'stopped' : `error (${code})`;
       this.ready = false;
-      this.failAll(new Error(`Serveur MCP ${this.server.name} arrêté (code ${code})${this.stderr ? `: ${this.stderr.slice(-400)}` : ''}`));
+      this.failAll(new Error(`MCP server ${this.server.name} stopped (code ${code})${this.stderr ? `: ${this.stderr.slice(-400)}` : ''}`));
     });
 
     this.child.stderr.on('data', (chunk) => {
@@ -127,7 +127,7 @@ class StdioConnection {
       if (!pending) return;
       clearTimeout(pending.timer);
       this.pending.delete(message.id);
-      if (message.error) pending.reject(new Error(message.error.message || `Erreur MCP ${message.error.code}`));
+      if (message.error) pending.reject(new Error(message.error.message || `MCP error ${message.error.code}`));
       else pending.resolve(message.result);
       return;
     }
@@ -141,7 +141,7 @@ class StdioConnection {
         this.write({
           jsonrpc: '2.0',
           id: message.id,
-          error: { code: -32601, message: `Méthode non supportée: ${message.method}` },
+          error: { code: -32601, message: `Unsupported method: ${message.method}` },
         });
       }
     }
@@ -157,12 +157,12 @@ class StdioConnection {
   }
 
   request(method, params, timeout = 30000) {
-    if (!this.child) return Promise.reject(new Error('Serveur MCP non démarré'));
+    if (!this.child) return Promise.reject(new Error('MCP server not started'));
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`Timeout MCP (${method}) sur ${this.server.name}`));
+        reject(new Error(`MCP timeout (${method}) on ${this.server.name}`));
       }, timeout);
       this.pending.set(id, { resolve, reject, timer });
       this.write({ jsonrpc: '2.0', id, method, params });
@@ -222,13 +222,13 @@ class HttpConnection {
           /* ignore */
         }
       }
-      throw new Error('Réponse MCP HTTP vide');
+      throw new Error('Empty MCP HTTP response');
     }
     return await res.json();
   }
 
   async start() {
-    if (!this.server.url) throw new Error('URL MCP manquante');
+    if (!this.server.url) throw new Error('Missing MCP URL');
     const result = await this.request('initialize', {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
@@ -242,7 +242,7 @@ class HttpConnection {
   async request(method, params) {
     const id = this.nextId++;
     const message = await this.post({ jsonrpc: '2.0', id, method, params });
-    if (message.error) throw new Error(message.error.message || 'Erreur MCP');
+    if (message.error) throw new Error(message.error.message || 'MCP error');
     return message.result;
   }
 
@@ -298,7 +298,7 @@ export async function listTools({ timeout = 12000 } = {}) {
     try {
       const connection = await Promise.race([
         getConnection(server),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout de connexion MCP')), timeout)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('MCP connection timeout')), timeout)),
       ]);
       const result = await connection.request('tools/list', {});
       const list = Array.isArray(result?.tools) ? result.tools : [];
@@ -320,12 +320,12 @@ export async function listTools({ timeout = 12000 } = {}) {
 
 export async function callTool(qualified, args = {}) {
   const dot = String(qualified).indexOf('.');
-  if (dot === -1) throw new Error('Nom d’outil MCP invalide (attendu: serveur.outil)');
+  if (dot === -1) throw new Error('Invalid MCP tool name (expected: server.tool)');
   const serverId = qualified.slice(0, dot);
   const toolName = qualified.slice(dot + 1);
   const server = config.find((s) => s.id === serverId);
-  if (!server) throw new Error(`Serveur MCP inconnu : ${serverId}`);
-  if (server.enabled === false) throw new Error(`Serveur MCP désactivé : ${server.name}`);
+  if (!server) throw new Error(`Unknown MCP server: ${serverId}`);
+  if (server.enabled === false) throw new Error(`MCP server disabled: ${server.name}`);
   const connection = await getConnection(server);
   const result = await connection.request('tools/call', { name: toolName, arguments: args || {} }, 90000);
   return { server: server.name, tool: toolName, result: normalizeResult(result) };
@@ -337,12 +337,12 @@ function normalizeResult(result) {
   const parts = [];
   for (const item of content) {
     if (item.type === 'text') parts.push(item.text);
-    else if (item.type === 'image') parts.push(`[image ${item.mimeType || 'binaire'} ${String(item.data || '').length} octets base64]`);
-    else if (item.type === 'resource') parts.push(`[ressource ${item.resource?.uri || ''}]`);
+    else if (item.type === 'image') parts.push(`[image ${item.mimeType || 'binary'} ${String(item.data || '').length} base64 bytes]`);
+    else if (item.type === 'resource') parts.push(`[resource ${item.resource?.uri || ''}]`);
     else parts.push(JSON.stringify(item));
   }
   if (!parts.length && result.structuredContent) parts.push(JSON.stringify(result.structuredContent));
-  return parts.join('\n').slice(0, 20000) || 'Résultat vide';
+  return parts.join('\n').slice(0, 20000) || 'Empty result';
 }
 
 export async function testServer(server) {

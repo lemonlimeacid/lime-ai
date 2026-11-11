@@ -6,6 +6,14 @@ let previewFrame = null;
 let previewUrl = null;
 let previewEmpty = null;
 let previewStage = null;
+let previewView = null;
+let previewLoader = null;
+let previewLoaderEyebrow = null;
+let previewLoaderTitle = null;
+let previewLoaderDetail = null;
+let previewLoadPending = false;
+let previewLoadStartedAt = 0;
+let previewLoaderTimer = null;
 let fileTreeEl = null;
 let editorEl = null;
 let editorPathEl = null;
@@ -47,6 +55,11 @@ export function initWorkspace() {
   previewUrl = $('#previewUrl');
   previewEmpty = $('#previewEmpty');
   previewStage = $('#previewStage');
+  previewView = $('.browser-view');
+  previewLoader = $('#previewLoader');
+  previewLoaderEyebrow = $('#previewLoaderEyebrow');
+  previewLoaderTitle = $('#previewLoaderTitle');
+  previewLoaderDetail = $('#previewLoaderDetail');
   fileTreeEl = $('#fileTree');
   editorEl = $('#editor');
   editorPathEl = $('#editorPath');
@@ -120,7 +133,12 @@ export function initWorkspace() {
     if (url) window.open(url, '_blank', 'noopener');
   });
 
-  previewFrame.addEventListener('load', stylePreviewScrollbars);
+  previewFrame.addEventListener('load', () => {
+    stylePreviewScrollbars();
+    if (!previewLoadPending) return;
+    previewLoadPending = false;
+    if (!state.streaming) schedulePreviewLoaderHide(260);
+  });
 
   previewUrl.addEventListener('change', () => reloadPreview());
   previewUrl.addEventListener('keydown', (event) => {
@@ -167,9 +185,9 @@ export function initWorkspace() {
     if (data.__supernova === 'console') {
       addConsole(data.payload.level || 'log', data.payload.text || '');
     } else if (data.__supernova === 'error') {
-      addConsole('error', data.payload.text || 'Erreur inconnue');
+      addConsole('error', data.payload.text || 'Unknown error');
     } else if (data.__supernova === 'ready') {
-      addConsole('info', `Aperçu chargé — ${data.payload.url}`);
+      addConsole('info', `Preview loaded — ${data.payload.url}`);
     }
   });
 
@@ -179,9 +197,10 @@ export function initWorkspace() {
   bus.on('log', (entry) => logEntry(entry));
   bus.on('mcp:status', (servers) => {
     const total = servers.reduce((sum, server) => sum + (server.tools?.length || 0), 0);
-    $('#statusMcp').textContent = `MCP : ${total} outil${total > 1 ? 's' : ''}`;
+    $('#statusMcp').textContent = `MCP: ${total} tool${total > 1 ? 's' : ''}`;
   });
   bus.on('preview:reload', () => reloadPreviewSoon());
+  bus.on('streaming:changed', syncPreviewStreaming);
 
   renderJournal();
   renderConsole();
@@ -200,10 +219,10 @@ export async function loadProject(id) {
     state.dirty = false;
 
     editorEl.value = '';
-    editorPathEl.textContent = 'Aucun fichier ouvert';
+    editorPathEl.textContent = 'No file open';
     editorDirtyEl.classList.add('hidden');
 
-    logEntry({ type: 'info', text: `Projet ouvert : <strong>${escapeText(data.project.name)}</strong> (${state.files.length} fichier(s))` });
+    logEntry({ type: 'info', text: `Project opened: <strong>${escapeText(data.project.name)}</strong> (${state.files.length} file(s))` });
     updateProjectChrome();
     renderTree();
     renderPreview();
@@ -221,7 +240,7 @@ export async function loadProject(id) {
       await openFile(preferred.path);
     }
   } catch (error) {
-    toast(`Chargement du projet impossible : ${error.message}`, 'err');
+    toast(`Unable to load project: ${error.message}`, 'err');
   }
 }
 
@@ -264,7 +283,7 @@ export function updateModeUI() {
   const mode = state.project?.mode || state.settings.mode;
   $('#modePcBtn').classList.toggle('active', mode === 'pc');
   $('#modeCloudBtn').classList.toggle('active', mode === 'cloud');
-  $('#statusMode').textContent = mode === 'cloud' ? 'Mode Cloud · stockage interne + ZIP' : 'Mode PC · dossier local';
+  $('#statusMode').textContent = mode === 'cloud' ? 'Cloud mode · internal storage + ZIP' : 'PC mode · local folder';
 
   const banner = $('#modeBanner');
   const wantsCloud = state.settings.mode === 'cloud';
@@ -273,12 +292,12 @@ export function updateModeUI() {
     banner.classList.remove('hidden');
     banner.innerHTML = '';
     banner.append(
-      h('span', { html: `Ce projet est en mode <strong>${state.project.mode === 'cloud' ? 'Cloud' : 'PC'}</strong>, alors que le mode actif est <strong>${wantsCloud ? 'Cloud' : 'PC'}</strong>.` }),
+      h('span', { html: `This project is in <strong>${state.project.mode === 'cloud' ? 'Cloud' : 'PC'}</strong> mode, but the active mode is <strong>${wantsCloud ? 'Cloud' : 'PC'}</strong>.` }),
       h('button', {
         class: 'btn subtle small',
         type: 'button',
         onclick: () => bus.emit('project:new'),
-      }, `Créer un projet ${wantsCloud ? 'Cloud' : 'PC'}`)
+      }, `Create a ${wantsCloud ? 'Cloud' : 'PC'} project`)
     );
   } else {
     banner.classList.add('hidden');
@@ -286,11 +305,11 @@ export function updateModeUI() {
 }
 
 function updateStatus() {
-  $('#statusFiles').textContent = `${state.files.length} fichier${state.files.length > 1 ? 's' : ''}`;
+  $('#statusFiles').textContent = `${state.files.length} file${state.files.length > 1 ? 's' : ''}`;
   $('#statusProvider').textContent = providerLabel();
   const pathEl = $('#statusPath');
   if (state.project) {
-    pathEl.textContent = state.project.mode === 'cloud' ? 'Cloud Supernova · stockage interne + ZIP' : state.project.rootDir || '';
+    pathEl.textContent = state.project.mode === 'cloud' ? 'Supernova Cloud · internal storage + ZIP' : state.project.rootDir || '';
     pathEl.title = pathEl.textContent;
   } else {
     pathEl.textContent = '—';
@@ -348,7 +367,7 @@ function syncViewControls() {
   }
   const toggle = $('#toggleWorkBtn');
   if (toggle) {
-    const label = workCollapsed ? 'Afficher le panneau de droite' : 'Masquer le panneau de droite';
+    const label = workCollapsed ? 'Show right panel' : 'Hide right panel';
     toggle.title = label;
     toggle.setAttribute('aria-label', label);
     toggle.setAttribute('aria-pressed', String(!workCollapsed));
@@ -391,7 +410,7 @@ function persistHiddenViews() {
 function setViewVisibility(view, visible, { persist = true } = {}) {
   if (!VIEWS.includes(view)) return;
   if (!visible && visibleViews().length <= 1) {
-    toast('Garde au moins une vue visible dans le panneau.', 'warn', 2600);
+    toast('Keep at least one view visible in the panel.', 'warn', 2600);
     syncViewControls();
     return;
   }
@@ -449,7 +468,7 @@ function renderSearches() {
   searchListEl.innerHTML = '';
   if (!state.searches?.length) {
     const empty = h('div', { class: 'search-empty' });
-    empty.innerHTML = `<svg class="i lg" aria-hidden="true"><use href="#i-search"></use></svg><strong>Aucune recherche pour l’instant</strong>Demande par exemple « cherche la documentation de l’API Open-Meteo ». Les requêtes et leurs sources apparaîtront ici.`;
+    empty.innerHTML = `<svg class="i lg" aria-hidden="true"><use href="#i-search"></use></svg><strong>No searches yet</strong>Try “find the Open-Meteo API documentation”. Queries and their sources will appear here.`;
     searchListEl.append(empty);
     return;
   }
@@ -457,11 +476,11 @@ function renderSearches() {
   for (const search of state.searches) {
     const entry = h('article', { class: 'search-entry' });
     const head = h('div', { class: 'search-entry-head' });
-    const info = h('div', { class: 'search-query', text: search.query || 'Recherche' });
+    const info = h('div', { class: 'search-query', text: search.query || 'Search' });
     const meta = h('div', { class: 'search-meta' });
     meta.append(
       h('span', { class: `search-status ${search.status || 'done'}` }),
-      h('span', { text: search.status === 'running' ? 'en cours' : `${search.results?.length || 0} source(s)` })
+      h('span', { text: search.status === 'running' ? 'running' : `${search.results?.length || 0} source(s)` })
     );
     head.append(info, meta);
     entry.append(head);
@@ -485,7 +504,7 @@ function renderSearches() {
         links.append(link);
       }
     } else {
-      links.append(h('div', { class: 'search-no-results', text: search.note || 'Aucun résultat pour cette recherche.' }));
+      links.append(h('div', { class: 'search-no-results', text: search.note || 'No results for this search.' }));
     }
     entry.append(links);
     searchListEl.append(entry);
@@ -493,6 +512,72 @@ function renderSearches() {
 }
 
 /* ── Aperçu ─────────────────────────────────────────────────────────────── */
+
+function previewHasHtml() {
+  return (state.files || []).some((file) => /\.html?$/i.test(file.path));
+}
+
+function updatePreviewLoaderCopy(mode = 'reload') {
+  const generating = mode === 'streaming' || state.streaming;
+  if (previewLoaderEyebrow) {
+    previewLoaderEyebrow.textContent = generating ? 'Generating' : 'Preview';
+  }
+  if (previewLoaderTitle) {
+    previewLoaderTitle.textContent = generating ? 'The stars are aligning…' : 'Reloading preview';
+  }
+  if (previewLoaderDetail) {
+    previewLoaderDetail.textContent = generating
+      ? 'The preview updates after each file is written.'
+      : 'The stars orbit while it loads.';
+  }
+}
+
+function showPreviewLoader(mode = 'reload') {
+  if (!previewLoader) return;
+  clearTimeout(previewLoaderTimer);
+  previewLoaderTimer = null;
+  previewLoadStartedAt = Date.now();
+  updatePreviewLoaderCopy(mode);
+  previewLoader.hidden = false;
+  previewView?.classList.add('is-preview-loading');
+  previewStage?.setAttribute('aria-busy', 'true');
+}
+
+function hidePreviewLoader() {
+  if (!previewLoader) return;
+  clearTimeout(previewLoaderTimer);
+  previewLoaderTimer = null;
+  if (state.streaming || previewLoadPending) return;
+  previewLoader.hidden = true;
+  previewView?.classList.remove('is-preview-loading');
+  previewStage?.setAttribute('aria-busy', 'false');
+}
+
+function schedulePreviewLoaderHide(delay = 0) {
+  if (!previewLoader) return;
+  clearTimeout(previewLoaderTimer);
+  const elapsed = Date.now() - previewLoadStartedAt;
+  const wait = Math.max(delay, 720 - elapsed);
+  previewLoaderTimer = setTimeout(hidePreviewLoader, wait);
+}
+
+function beginPreviewLoad(mode = 'reload') {
+  if (!previewLoader) return;
+  if (!state.streaming && !previewHasHtml() && mode !== 'streaming') {
+    hidePreviewLoader();
+    return;
+  }
+  previewLoadPending = true;
+  showPreviewLoader(mode);
+}
+
+function syncPreviewStreaming(on) {
+  if (on) {
+    showPreviewLoader('streaming');
+  } else {
+    schedulePreviewLoaderHide(900);
+  }
+}
 
 function previewTarget() {
   if (!state.project) return '';
@@ -503,12 +588,16 @@ export function renderPreview() {
   if (!state.project) return;
   const base = previewTarget();
   previewUrl.value = base;
-  const hasFiles = state.files.some((file) => /\.html?$/i.test(file.path));
+  const hasFiles = previewHasHtml();
   previewEmpty.classList.toggle('hidden', hasFiles);
   if (hasFiles) {
     previewFrame.src = `${base}?v=${Date.now()}`;
+    beginPreviewLoad(state.streaming ? 'streaming' : 'reload');
   } else {
     previewFrame.removeAttribute('src');
+    previewLoadPending = false;
+    if (state.streaming) showPreviewLoader('streaming');
+    else hidePreviewLoader();
   }
 }
 
@@ -519,8 +608,9 @@ export function reloadPreview() {
   const separator = url.includes('?') ? '&' : '?';
   const target = url.startsWith(`${location.origin}/preview/`) ? `${url}${separator}v=${Date.now()}` : url;
   previewFrame.src = target;
-  const hasFiles = state.files.some((file) => /\.html?$/i.test(file.path));
+  const hasFiles = previewHasHtml();
   previewEmpty.classList.toggle('hidden', hasFiles);
+  beginPreviewLoad(state.streaming ? 'streaming' : 'reload');
 }
 
 function reloadPreviewSoon() {
@@ -544,7 +634,7 @@ function fileIcon(name) {
 function renderTree() {
   fileTreeEl.innerHTML = '';
   if (!state.project || !state.files.length) {
-    fileTreeEl.append(h('div', { class: 'tree-empty', text: 'Projet vide — demande une app dans le chat.' }));
+    fileTreeEl.append(h('div', { class: 'tree-empty', text: 'Empty project — ask for an app in the chat.' }));
     return;
   }
 
@@ -591,7 +681,7 @@ function renderTree() {
 export async function openFile(path, { silent = false } = {}) {
   if (!state.project || !path) return;
   if (state.dirty && !silent) {
-    if (!confirm('Des modifications non enregistrées seront perdues. Continuer ?')) return;
+    if (!confirm('Unsaved changes will be lost. Continue?')) return;
   }
   try {
     const data = await api.readFile(state.project.id, path);
@@ -603,52 +693,52 @@ export async function openFile(path, { silent = false } = {}) {
     editorDirtyEl.classList.add('hidden');
     renderTree();
   } catch (error) {
-    if (!silent) toast(`Ouverture impossible : ${error.message}`, 'err');
+    if (!silent) toast(`Unable to open: ${error.message}`, 'err');
   }
 }
 
 async function saveFile() {
-  if (!state.project || !state.openFile) return toast('Aucun fichier ouvert.', 'warn', 2200);
+  if (!state.project || !state.openFile) return toast('No file open.', 'warn', 2200);
   try {
     await api.writeFile(state.project.id, state.openFile, editorEl.value);
     state.dirty = false;
     editorDirtyEl.classList.add('hidden');
-    toast(`Enregistré : ${state.openFile}`, 'ok', 2000);
-    logEntry({ type: 'file', text: `Fichier modifié à la main : <code>${escapeText(state.openFile)}</code>` });
+    toast(`Saved: ${state.openFile}`, 'ok', 2000);
+    logEntry({ type: 'file', text: `File edited manually: <code>${escapeText(state.openFile)}</code>` });
     await refreshFiles();
     reloadPreviewSoon();
   } catch (error) {
-    toast(`Enregistrement impossible : ${error.message}`, 'err');
+    toast(`Unable to save: ${error.message}`, 'err');
   }
 }
 
 async function createFile() {
   if (!state.project) return;
-  const path = window.prompt('Chemin du nouveau fichier (ex : src/app.js)');
+  const path = window.prompt('New file path (e.g. src/app.js)');
   if (!path) return;
   try {
     await api.writeFile(state.project.id, path, '');
     await refreshFiles();
     await openFile(path);
-    toast(`Fichier créé : ${path}`, 'ok', 2200);
+    toast(`File created: ${path}`, 'ok', 2200);
   } catch (error) {
-    toast(`Création impossible : ${error.message}`, 'err');
+    toast(`Unable to create: ${error.message}`, 'err');
   }
 }
 
 async function deleteFile() {
-  if (!state.project || !state.openFile) return toast('Aucun fichier ouvert.', 'warn', 2200);
-  if (!confirm(`Supprimer ${state.openFile} ?`)) return;
+  if (!state.project || !state.openFile) return toast('No file open.', 'warn', 2200);
+  if (!confirm(`Delete ${state.openFile}?`)) return;
   try {
     await api.removeFile(state.project.id, state.openFile);
-    logEntry({ type: 'file', text: `Fichier supprimé : <code>${escapeText(state.openFile)}</code>` });
+    logEntry({ type: 'file', text: `File deleted: <code>${escapeText(state.openFile)}</code>` });
     state.openFile = null;
     editorEl.value = '';
-    editorPathEl.textContent = 'Aucun fichier ouvert';
+    editorPathEl.textContent = 'No file open';
     await refreshFiles();
     reloadPreviewSoon();
   } catch (error) {
-    toast(`Suppression impossible : ${error.message}`, 'err');
+    toast(`Unable to delete: ${error.message}`, 'err');
   }
 }
 
@@ -657,7 +747,7 @@ async function deleteFile() {
 export function logEntry(entry) {
   if (!entry) return;
   journalEntries.unshift({
-    time: new Date().toLocaleTimeString('fr-FR'),
+    time: new Date().toLocaleTimeString('en-US'),
     type: entry.type || 'info',
     text: entry.text || '',
   });
@@ -670,7 +760,7 @@ function renderJournal() {
   if (!container) return;
   container.innerHTML = '';
   if (!journalEntries.length) {
-    container.append(h('p', { class: 'empty-journal', text: 'Le journal des actions de l’agent apparaîtra ici.' }));
+    container.append(h('p', { class: 'empty-journal', text: 'The agent activity log will appear here.' }));
     return;
   }
   for (const entry of journalEntries) {
@@ -686,7 +776,7 @@ function renderJournal() {
 /* ── Console ────────────────────────────────────────────────────────────── */
 
 function addConsole(level, text) {
-  consoleEntries.push({ level, text: String(text).slice(0, 4000), time: new Date().toLocaleTimeString('fr-FR') });
+  consoleEntries.push({ level, text: String(text).slice(0, 4000), time: new Date().toLocaleTimeString('en-US') });
   if (consoleEntries.length > 300) consoleEntries.shift();
   if (state.tab === 'console' && state.view === 'code') renderConsole();
   consoleBadge?.classList.remove('hidden');
@@ -697,7 +787,7 @@ function renderConsole() {
   if (!container) return;
   container.innerHTML = '';
   if (!consoleEntries.length) {
-    container.append(h('div', { class: 'empty-console', text: 'Aucun log pour l’instant. Ouvre l’aperçu live pour voir la console de l’app.' }));
+    container.append(h('div', { class: 'empty-console', text: 'No logs yet. Open the live preview to see the app console.' }));
     return;
   }
   for (const entry of consoleEntries.slice().reverse()) {

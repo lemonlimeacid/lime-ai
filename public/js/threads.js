@@ -4,6 +4,7 @@ import {
   $, $$, h, state, bus, toast, timeAgo, icon, saveUiPreferences,
   createThread, deleteThread, ensureThread, listThreads, setActiveThread,
 } from './core.js';
+import { defaultSuperAgents } from './superagents.js';
 
 let layout = null;
 let listEl = null;
@@ -31,7 +32,7 @@ function setCollapsed(collapsed, { persist = true } = {}) {
   if (!layout) return;
   layout.classList.toggle('threads-collapsed', collapsed);
   if (toggleBtn) {
-    const label = collapsed ? 'Afficher les conversations' : 'Replier les conversations';
+    const label = collapsed ? 'Show conversations' : 'Collapse conversations';
     toggleBtn.title = label;
     toggleBtn.setAttribute('aria-label', label);
     toggleBtn.setAttribute('aria-expanded', String(!collapsed));
@@ -49,8 +50,8 @@ function renderList() {
     listEl.append(
       h('div', { class: 'threads-empty' }, [
         h('span', { class: 'threads-empty-icon', html: icon('message', 'sm') }),
-        h('span', { text: 'Aucune conversation' }),
-        h('small', { text: 'Utilise + pour commencer.' }),
+        h('span', { text: 'No conversations' }),
+        h('small', { text: 'Use + to get started.' }),
       ])
     );
     return;
@@ -71,12 +72,15 @@ function renderList() {
       'aria-current': active ? 'true' : null,
     });
     open.append(
-      h('span', { class: 'thread-icon', html: icon(thread.kind === 'chat' ? 'message' : 'code', 'sm') }),
+      h('span', {
+        class: 'thread-icon',
+        html: icon(thread.kind === 'chat' ? 'message' : thread.kind === 'super' ? 'sparkles' : 'code', 'sm'),
+      }),
       h('span', { class: 'thread-copy' }, [
         h('span', { class: 'thread-name', text: thread.title }),
         h('span', {
           class: 'thread-meta',
-          text: `${projectNames.get(thread.projectId) || 'Projet'} · ${timeAgo(thread.updatedAt)}`,
+          text: `${projectNames.get(thread.projectId) || 'Project'} · ${timeAgo(thread.updatedAt)}${thread.kind === 'super' ? ` · ${thread.agents?.length || 0} agents` : ''}`,
         }),
       ])
     );
@@ -85,8 +89,8 @@ function renderList() {
     const remove = h('button', {
       class: 'thread-del icon-btn small',
       type: 'button',
-      title: 'Supprimer la conversation',
-      'aria-label': `Supprimer « ${thread.title} »`,
+      title: 'Delete conversation',
+      'aria-label': `Delete “${thread.title}”`,
       html: icon('trash', 'sm'),
     });
     remove.addEventListener('click', (event) => {
@@ -102,7 +106,7 @@ function renderList() {
 function openThread(thread) {
   if (!thread) return;
   if (state.streaming) {
-    toast('Arrête la génération en cours avant de changer de conversation.', 'warn');
+    toast('Stop the current generation before switching conversations.', 'warn');
     return;
   }
   closeMenu();
@@ -121,10 +125,10 @@ function openThread(thread) {
 
 function removeThread(thread) {
   if (state.streaming) {
-    toast('Arrête la génération en cours avant de supprimer.', 'warn');
+    toast('Stop the current generation before deleting.', 'warn');
     return;
   }
-  if (!confirm(`Supprimer la conversation « ${thread.title} » ?`)) return;
+  if (!confirm(`Delete the conversation “${thread.title}”?`)) return;
   const wasActive = thread.id === state.threadId;
   deleteThread(thread.id);
   bus.emit('threads:changed');
@@ -135,7 +139,7 @@ function removeThread(thread) {
     state.chat = next?.messages || [];
     bus.emit('thread:changed', next);
   }
-  toast('Conversation supprimée.', 'ok', 2400);
+  toast('Conversation deleted.', 'ok', 2400);
 }
 
 function createItem(kind) {
@@ -145,15 +149,19 @@ function createItem(kind) {
     return;
   }
   if (!state.project) {
-    toast('Crée d’abord un projet.', 'warn');
+    toast('Create a project first.', 'warn');
     return;
   }
   if (state.streaming) {
-    toast('Arrête la génération en cours avant de créer une conversation.', 'warn');
+    toast('Stop the current generation before creating a conversation.', 'warn');
     return;
   }
 
-  const thread = createThread(state.project.id, { kind: kind === 'chat' ? 'chat' : 'agent' });
+  const normalizedKind = kind === 'chat' ? 'chat' : kind === 'super' ? 'super' : 'agent';
+  const thread = createThread(state.project.id, {
+    kind: normalizedKind,
+    agents: normalizedKind === 'super' ? defaultSuperAgents() : [],
+  });
   if (!thread) return;
   state.thread = thread;
   state.threadId = thread.id;
@@ -162,7 +170,15 @@ function createItem(kind) {
   bus.emit('threads:changed');
   if (isNarrow()) setCollapsed(true);
   setTimeout(() => $('#prompt')?.focus(), 40);
-  toast(kind === 'chat' ? 'Nouvelle conversation.' : 'Nouvelle tâche de code.', 'ok', 2200);
+  toast(
+    normalizedKind === 'chat'
+      ? 'New conversation.'
+      : normalizedKind === 'super'
+        ? 'Super agents project created — agents are ready.'
+        : 'New coding task.',
+    'ok',
+    normalizedKind === 'super' ? 3600 : 2200
+  );
 }
 
 export function initThreads() {

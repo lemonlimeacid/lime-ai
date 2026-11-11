@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Supernova IA — agent de code local</title>
-  <meta name="description" content="Supernova IA : agent de code local façon Claude Code + bolt.new. Multi-API, MCP, aperçu live, mode PC/Cloud, vocal." />
+  <title>Supernova AI — local coding agent</title>
+  <meta name="description" content="Supernova AI: a local coding agent in the spirit of Claude Code + bolt.new. Multi-API, MCP, live preview, PC/Cloud mode, voice." />
   <script>
     try {
       if (localStorage.getItem('supernova.theme') === 'light') document.documentElement.dataset.theme = 'light';
@@ -14,6 +14,7 @@
       }
     } catch (error) {}
   </script>
+  <link rel="preload" href="/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5.5' fill='%23141413'/%3E%3Cg fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' transform='rotate(24 12 12)'%3E%3Cellipse cx='12' cy='12' rx='8.7' ry='4.1' stroke-dasharray='23 7' stroke-dashoffset='-3'/%3E%3Cpath d='M4.7 12a7.3 3.2 0 0 1 14.6 0' opacity='.45'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2' fill='%23e07a52'/%3E%3Cpath d='M19.3 5.8 20.5 4.6M4.7 18.2 3.5 19.4' fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' opacity='.55'/%3E%3C/svg%3E" />
 </head>
@@ -78,45 +79,50 @@
     <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 2v2"/><path d="M15 2v2"/><path d="M9 20v2"/><path d="M15 20v2"/><path d="M2 9h2"/><path d="M2 15h2"/><path d="M20 9h2"/><path d="M20 15h2"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m17.7 6.3 1.4-1.4"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2.17c-3.2.7-3.88-1.36-3.88-1.36-.53-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.71.08-.71 1.16.08 1.76 1.19 1.76 1.19 1.04 1.78 2.73 1.27 3.4.97.1-.75.4-1.27.73-1.56-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.04 11.04 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.41-5.26 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></symbol>
   </svg>
 
   <div id="app">
     <header class="topbar">
       <div class="brand">
         <span class="logo" aria-hidden="true"><svg class="i"><use href="#i-logo"></use></svg></span>
-        <span class="brand-text"><strong>Supernova</strong><span class="brand-sub">IA</span></span>
+        <span class="brand-text"><strong>Supernova</strong><span class="brand-sub">AI</span></span>
       </div>
 
       <span class="divider-v" aria-hidden="true"></span>
 
       <div class="project-switcher">
-        <button id="projectSelectBtn" class="project-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="projectSelectValue" title="Changer de projet">
+        <button id="projectSelectBtn" class="project-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="projectSelectValue" title="Switch project">
           <svg class="i sm leading" aria-hidden="true"><use id="projectSelectUse" href="#i-folder"></use></svg>
-          <span class="project-select-value" id="projectSelectValue">Aucun projet</span>
+          <span class="project-select-value" id="projectSelectValue">No project</span>
           <svg class="i sm chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </button>
-        <div class="project-select-menu" id="projectSelectMenu" role="listbox" aria-label="Projets" hidden>
+        <div class="project-select-menu" id="projectSelectMenu" role="listbox" aria-label="Projects" hidden>
           <div class="project-menu-list" id="projectMenuList"></div>
           <button type="button" class="project-menu-add" id="projectMenuAdd">
             <span class="project-menu-add-icon" aria-hidden="true"><svg class="i sm"><use href="#i-plus"></use></svg></span>
-            <span class="project-menu-add-copy"><strong>Ajouter un dossier</strong><small>Nouveau projet · dossier « Project - N » par défaut</small></span>
+            <span class="project-menu-add-copy"><strong>Add a folder</strong><small>New project · “Project - N” folder by default</small></span>
           </button>
         </div>
       </div>
 
-      <div class="mode-toggle" role="group" aria-label="Mode de création des projets">
-        <button data-mode="pc" id="modePcBtn" class="active" title="Créer un vrai dossier sur le PC"><svg class="i sm"><use href="#i-monitor"></use></svg><span>PC</span></button>
-        <button data-mode="cloud" id="modeCloudBtn" title="Créer un projet dans le Cloud interne Supernova, exportable en ZIP"><svg class="i sm"><use href="#i-cloud"></use></svg><span>Cloud</span></button>
+      <div class="mode-toggle" role="group" aria-label="Project creation mode">
+        <button data-mode="pc" id="modePcBtn" class="active" title="Create a real folder on your PC"><svg class="i sm"><use href="#i-monitor"></use></svg><span>PC</span></button>
+        <button data-mode="cloud" id="modeCloudBtn" title="Create a project in Supernova Cloud, exportable as ZIP"><svg class="i sm"><use href="#i-cloud"></use></svg><span>Cloud</span></button>
       </div>
 
       <div class="top-actions">
-        <button id="downloadZipBtn" class="btn subtle" title="Télécharger le projet en ZIP"><svg class="i sm"><use href="#i-download"></use></svg><span class="label">ZIP</span></button>
-        <button id="themeBtn" class="icon-btn" title="Passer au thème clair" aria-label="Basculer le thème" aria-pressed="false">
+        <button id="githubBtn" class="icon-btn github-trigger" type="button" title="Connect GitHub" aria-label="GitHub">
+          <svg class="i"><use href="#i-github"></use></svg>
+          <span class="github-status-dot" id="githubStatusDot" hidden aria-hidden="true"></span>
+        </button>
+        <button id="downloadZipBtn" class="btn subtle" title="Download project as ZIP"><svg class="i sm"><use href="#i-download"></use></svg><span class="label">ZIP</span></button>
+        <button id="themeBtn" class="icon-btn" title="Switch to light theme" aria-label="Toggle theme" aria-pressed="false">
           <svg class="i theme-sun"><use href="#i-sun"></use></svg>
           <svg class="i theme-moon"><use href="#i-moon"></use></svg>
         </button>
-        <button id="settingsBtn" class="icon-btn" title="Paramètres" aria-label="Paramètres"><svg class="i"><use href="#i-sliders"></use></svg></button>
-        <button id="helpBtn" class="icon-btn" title="Aide" aria-label="Aide"><svg class="i"><use href="#i-help"></use></svg></button>
+        <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings"><svg class="i"><use href="#i-sliders"></use></svg></button>
+        <button id="helpBtn" class="icon-btn" title="Help" aria-label="Help"><svg class="i"><use href="#i-help"></use></svg></button>
       </div>
     </header>
 
@@ -125,11 +131,11 @@
     <main class="layout threads-collapsed" id="layout">
       <aside class="threads-sidebar" id="threadsSidebar" aria-label="Conversations">
         <div class="threads-head">
-          <button id="threadsToggle" class="icon-btn small" type="button" title="Afficher les conversations" aria-label="Afficher les conversations" aria-expanded="false">
+          <button id="threadsToggle" class="icon-btn small" type="button" title="Show conversations" aria-label="Show conversations" aria-expanded="false">
             <svg class="i sm"><use href="#i-panel-left"></use></svg>
           </button>
           <span class="threads-title">Conversations</span>
-          <button id="threadsNewBtn" class="icon-btn small" type="button" title="Créer" aria-label="Créer une conversation ou un projet" aria-haspopup="menu" aria-expanded="false">
+          <button id="threadsNewBtn" class="icon-btn small" type="button" title="Create" aria-label="Create a conversation or project" aria-haspopup="menu" aria-expanded="false">
             <svg class="i sm"><use href="#i-plus"></use></svg>
           </button>
         </div>
@@ -137,15 +143,19 @@
         <div class="threads-menu" id="threadsCreateMenu" role="menu" hidden>
           <button type="button" role="menuitem" data-thread-create="project">
             <span class="threads-menu-icon"><svg class="i sm"><use href="#i-folder"></use></svg></span>
-            <span class="threads-menu-copy"><strong>Projets</strong><small>Créer un espace complet avec fichiers et aperçu.</small></span>
+            <span class="threads-menu-copy"><strong>Projects</strong><small>Create a complete workspace with files and preview.</small></span>
           </button>
           <button type="button" role="menuitem" data-thread-create="chat">
             <span class="threads-menu-icon"><svg class="i sm"><use href="#i-message"></use></svg></span>
-            <span class="threads-menu-copy"><strong>Chat</strong><small>Questions, recherches et code simple.</small></span>
+            <span class="threads-menu-copy"><strong>Chat</strong><small>Questions, research and simple code.</small></span>
           </button>
           <button type="button" role="menuitem" data-thread-create="agent">
             <span class="threads-menu-icon"><svg class="i sm"><use href="#i-code"></use></svg></span>
-            <span class="threads-menu-copy"><strong>Agent</strong><small>Une tâche de code sur le projet actif.</small></span>
+            <span class="threads-menu-copy"><strong>Agent</strong><small>A coding task on the active project.</small></span>
+          </button>
+          <button type="button" role="menuitem" data-thread-create="super" class="threads-menu-super">
+            <span class="threads-menu-icon"><svg class="i sm"><use href="#i-sparkles"></use></svg></span>
+            <span class="threads-menu-copy"><strong>Super agents project</strong><small>A supervisor and multiple models working together.</small></span>
           </button>
         </div>
 
@@ -159,21 +169,38 @@
           <span class="pill" id="enginePill">Supernova Engine</span>
           <div class="spacer"></div>
           <div class="pane-controls" id="paneControls">
-            <button id="workspaceViewsBtn" class="icon-btn small" type="button" title="Choisir les vues du panneau de droite" aria-label="Vues du panneau de droite" aria-haspopup="dialog" aria-expanded="false">
+            <button id="workspaceViewsBtn" class="icon-btn small" type="button" title="Choose right panel views" aria-label="Right panel views" aria-haspopup="dialog" aria-expanded="false">
               <svg class="i sm"><use href="#i-panel-right"></use></svg>
             </button>
-            <div class="views-menu" id="workspaceMenu" role="dialog" aria-label="Vues du panneau de droite" hidden>
+            <div class="views-menu" id="workspaceMenu" role="dialog" aria-label="Right panel views" hidden>
               <div class="views-menu-head">
-                <span class="views-menu-title">Panneau de droite</span>
-                <span class="views-menu-note">Afficher ou masquer chaque vue</span>
+                <span class="views-menu-title">Right panel</span>
+                <span class="views-menu-note">Show or hide each view</span>
               </div>
-              <label class="view-toggle"><input type="checkbox" data-view-toggle="live" checked /><span><strong>Aperçu</strong><small>Le rendu live de l’application</small></span></label>
-              <label class="view-toggle"><input type="checkbox" data-view-toggle="code" checked /><span><strong>Code</strong><small>Fichiers, terminal, console et journal</small></span></label>
-              <label class="view-toggle"><input type="checkbox" data-view-toggle="search" checked /><span><strong>Recherches</strong><small>Les recherches web de l’agent</small></span></label>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="live" checked /><span><strong>Preview</strong><small>The live app rendering</small></span></label>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="code" checked /><span><strong>Code</strong><small>Files, terminal, console and log</small></span></label>
+              <label class="view-toggle"><input type="checkbox" data-view-toggle="search" checked /><span><strong>Searches</strong><small>The agent’s web searches</small></span></label>
             </div>
           </div>
-          <button id="toggleWorkBtn" class="icon-btn small" type="button" title="Masquer le panneau de droite" aria-label="Masquer le panneau de droite" aria-pressed="true"><svg class="i sm"><use href="#i-panel-right"></use></svg></button>
-          <button id="clearChatBtn" class="icon-btn small" title="Effacer la conversation" aria-label="Effacer la conversation"><svg class="i sm"><use href="#i-trash"></use></svg></button>
+          <button id="toggleWorkBtn" class="icon-btn small" type="button" title="Hide right panel" aria-label="Hide right panel" aria-pressed="true"><svg class="i sm"><use href="#i-panel-right"></use></svg></button>
+          <button id="clearChatBtn" class="icon-btn small" title="Clear conversation" aria-label="Clear conversation"><svg class="i sm"><use href="#i-trash"></use></svg></button>
+        </div>
+
+        <div class="super-roster" id="superRoster" hidden>
+          <div class="super-roster-head">
+            <span class="super-roster-kicker">Super agents</span>
+            <span class="super-roster-note">Supervisor: <strong id="superOrchestratorModel">—</strong></span>
+            <span class="spacer"></span>
+            <span class="super-roster-count" id="superAgentCount" aria-live="polite"></span>
+          </div>
+          <div class="super-agent-list" id="superAgentList"></div>
+          <div class="super-roster-foot">
+            <button id="addSuperAgent" class="super-add" type="button">
+              <svg class="i xs" aria-hidden="true"><use href="#i-plus"></use></svg>
+              Add agent
+            </button>
+            <span class="super-agent-hint" id="superAgentHint"></span>
+          </div>
         </div>
 
         <div class="messages" id="messages" aria-live="polite"></div>
@@ -182,45 +209,43 @@
           <div class="composer-box">
             <div class="composer-attachments" id="composerAttachments" hidden></div>
             <label class="sr-only" for="prompt">Message</label>
-            <textarea id="prompt" rows="2" placeholder="Décris ce que tu veux construire…"></textarea>
+            <textarea id="prompt" rows="2" placeholder="Describe what you want to build…"></textarea>
             <div class="composer-tools">
               <div class="composer-icons">
                 <input id="fileInput" type="file" multiple hidden />
-                <button id="attachBtn" class="icon-btn ghost" title="Joindre un fichier texte ou du code" aria-label="Joindre un fichier"><svg class="i sm"><use href="#i-paperclip"></use></svg></button>
-                <button id="micBtn" class="icon-btn ghost" title="Dicter à la voix" aria-label="Dicter"><svg class="i sm"><use href="#i-mic"></use></svg></button>
-                <button id="speakBtn" class="icon-btn ghost" title="Lire les réponses à voix haute" aria-label="Lecture vocale"><svg class="i sm"><use href="#i-volume-x"></use></svg></button>
-                <button id="enhanceBtn" class="icon-btn ghost" title="Améliorer le prompt" aria-label="Améliorer le prompt"><svg class="i sm"><use href="#i-sparkles"></use></svg></button>
+                <button id="attachBtn" class="icon-btn ghost" title="Attach a text or code file" aria-label="Attach a file"><svg class="i sm"><use href="#i-paperclip"></use></svg></button>
+                <button id="micBtn" class="icon-btn ghost" title="Voice dictation" aria-label="Dictate"><svg class="i sm"><use href="#i-mic"></use></svg></button>
+                <button id="speakBtn" class="icon-btn ghost" title="Read responses aloud" aria-label="Read aloud"><svg class="i sm"><use href="#i-volume-x"></use></svg></button>
+                <button id="enhanceBtn" class="icon-btn ghost" title="Improve prompt" aria-label="Improve prompt"><svg class="i sm"><use href="#i-sparkles"></use></svg></button>
               </div>
-              <span class="composer-kbd" aria-hidden="true"><kbd>Entrée</kbd><kbd>Maj</kbd><kbd>Entrée</kbd></span>
+              <span class="composer-kbd" aria-hidden="true"><kbd>Enter</kbd><kbd>Shift</kbd><kbd>Enter</kbd></span>
               <div class="spacer"></div>
               <div class="model-picker" id="modelPicker">
-                <button id="modelPickerBtn" class="model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="modelPickerMenu" title="Modèle actif — choisir un modèle">
+                <button id="modelPickerBtn" class="model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="modelPickerMenu" title="Active model — choose a model">
                   <svg class="i sm" aria-hidden="true"><use href="#i-cpu"></use></svg>
                   <span id="modelPickerLabel" class="model-trigger-label">supernova-mini</span>
                   <svg class="i xs model-trigger-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                 </button>
-                <div class="model-menu" id="modelPickerMenu" role="dialog" aria-label="Modèle et performance" hidden>
-                  <div class="model-menu-head">
-                    <span class="model-menu-eyebrow">Performance</span>
-                    <span id="modelEffortValue" class="model-effort-value">Équilibré</span>
-                  </div>
+                <div class="model-menu" id="modelPickerMenu" role="dialog" aria-label="Model and performance" hidden>
                   <div class="model-effort-control">
                     <div id="modelEffortTicks" class="model-effort-ticks" aria-hidden="true"></div>
-                    <input id="modelEffortSlider" class="model-effort-slider" type="range" min="0" max="2" step="1" value="1" aria-label="Niveau de performance du modèle" />
+                    <input id="modelEffortSlider" class="model-effort-slider" type="range" min="0" max="2" step="1" value="1" aria-label="Model performance level" />
                   </div>
-                  <p id="modelEffortHint" class="model-effort-hint">Adapte la profondeur de réflexion du modèle actif.</p>
-                  <div class="model-menu-bar">
-                    <span id="modelMenuCount" class="model-menu-count"></span>
+                  <div class="model-menu-current">
+                    <span id="modelMenuActiveName" class="model-menu-current-name">supernova-mini</span>
+                    <span id="modelMenuDefaultBadge" class="model-default-badge">Default</span>
+                    <span class="spacer"></span>
                     <button id="modelMenuToggle" class="model-more-btn" type="button" aria-expanded="false">Show more <svg class="i xs"><use href="#i-chevron-down"></use></svg></button>
                   </div>
-                  <div id="modelMenuList" class="model-menu-list"></div>
+                  <div id="modelMenuList" class="model-menu-list" hidden></div>
+                  <div id="modelMenuEmpty" class="model-menu-empty" hidden>No API connected. Open Settings → AI connection to add a key.</div>
                 </div>
               </div>
-              <button id="stopBtn" class="btn danger hidden"><svg class="i sm"><use href="#i-square"></use></svg><span>Arrêter</span></button>
-              <button id="sendBtn" class="btn primary"><span>Envoyer</span><svg class="i sm"><use href="#i-arrow-up"></use></svg></button>
+              <button id="stopBtn" class="btn danger hidden"><svg class="i sm"><use href="#i-square"></use></svg><span>Stop</span></button>
+              <button id="sendBtn" class="btn primary"><span>Send</span><svg class="i sm"><use href="#i-arrow-up"></use></svg></button>
             </div>
           </div>
-          <p class="hint" id="composerHint">Entrée envoie, Maj+Entrée va à la ligne. Trombone : joins un fichier texte ou du code ; les blocs <code>```</code> sont rendus automatiquement.</p>
+          <p class="hint" id="composerHint">Enter sends, Shift+Enter adds a line break. Paperclip: attach a text or code file; <code>```</code> blocks are rendered automatically.</p>
         </div>
       </section>
 
@@ -228,19 +253,19 @@
 
       <section class="pane work-pane">
         <div class="work-head">
-          <div class="segmented" role="tablist" aria-label="Vue">
-            <button data-view="live" class="active" role="tab"><svg class="i sm"><use href="#i-play"></use></svg><span>Aperçu</span></button>
+          <div class="segmented" role="tablist" aria-label="View">
+            <button data-view="live" class="active" role="tab"><svg class="i sm"><use href="#i-play"></use></svg><span>Preview</span></button>
             <button data-view="code" role="tab"><svg class="i sm"><use href="#i-code"></use></svg><span>Code</span></button>
             <button data-view="search" role="tab"><svg class="i sm"><use href="#i-search"></use></svg><span>Recherches</span></button>
           </div>
           <div class="spacer"></div>
-          <div class="device-toggle" role="group" aria-label="Taille de l’aperçu">
-            <button data-device="desktop" class="active" title="Bureau" aria-label="Bureau"><svg class="i sm"><use href="#i-monitor"></use></svg></button>
+          <div class="device-toggle" role="group" aria-label="Preview size">
+            <button data-device="desktop" class="active" title="Desktop" aria-label="Desktop"><svg class="i sm"><use href="#i-monitor"></use></svg></button>
             <button data-device="mobile" title="Mobile" aria-label="Mobile"><svg class="i sm"><use href="#i-smartphone"></use></svg></button>
           </div>
-          <button id="refreshBtn" class="icon-btn small" title="Rafraîchir la vue" aria-label="Rafraîchir"><svg class="i sm"><use href="#i-refresh"></use></svg></button>
-          <button id="openTabBtn" class="icon-btn small" title="Ouvrir dans un nouvel onglet" aria-label="Ouvrir dans un nouvel onglet"><svg class="i sm"><use href="#i-external"></use></svg></button>
-          <button id="hideWorkBtn" class="icon-btn small" title="Masquer le panneau (aperçu, code et recherches)" aria-label="Masquer le panneau de travail"><svg class="i sm"><use href="#i-panel-collapse"></use></svg></button>
+          <button id="refreshBtn" class="icon-btn small" title="Refresh view" aria-label="Refresh"><svg class="i sm"><use href="#i-refresh"></use></svg></button>
+          <button id="openTabBtn" class="icon-btn small" title="Open in a new tab" aria-label="Open in a new tab"><svg class="i sm"><use href="#i-external"></use></svg></button>
+          <button id="hideWorkBtn" class="icon-btn small" title="Hide panel (preview, code and searches)" aria-label="Hide work panel"><svg class="i sm"><use href="#i-panel-collapse"></use></svg></button>
         </div>
 
         <div class="work-body">
@@ -251,17 +276,45 @@
                   <span class="traffic" aria-hidden="true"><i class="red"></i><i class="yellow"></i><i class="green"></i></span>
                   <div class="browser-url">
                     <svg class="i xs" aria-hidden="true"><use href="#i-globe"></use></svg>
-                    <label class="sr-only" for="previewUrl">URL de l’aperçu</label>
-                    <input id="previewUrl" spellcheck="false" aria-label="URL de l’aperçu" />
+                    <label class="sr-only" for="previewUrl">Preview URL</label>
+                    <input id="previewUrl" spellcheck="false" aria-label="Preview URL" />
                   </div>
                   <span class="chrome-end" aria-hidden="true"></span>
                 </div>
                 <div class="browser-view">
-                  <iframe id="previewFrame" title="Aperçu de l’application" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin allow-downloads"></iframe>
+                  <iframe id="previewFrame" title="App preview" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin allow-downloads"></iframe>
+                  <div class="preview-loader" id="previewLoader" role="status" aria-live="polite" hidden>
+                    <div class="stellar-loader" aria-hidden="true">
+                      <span class="cosmic-haze"></span>
+                      <span class="cosmic-belt belt-one"></span>
+                      <span class="cosmic-belt belt-two"></span>
+                      <div class="cosmic-orbit-plane">
+                        <span class="cosmic-orbit-path path-one"></span>
+                        <span class="cosmic-orbit-path path-two"></span>
+                        <div class="cosmic-orbit-spin">
+                          <span class="cosmic-star-slot cosmic-slot-gold">
+                            <span class="cosmic-star cosmic-star-gold"><span class="star-core"></span><span class="star-flare"></span></span>
+                          </span>
+                          <span class="cosmic-star-slot cosmic-slot-azure">
+                            <span class="cosmic-star cosmic-star-azure"><span class="star-core"></span><span class="star-flare"></span></span>
+                          </span>
+                        </div>
+                      </div>
+                      <span class="cosmic-collision"></span>
+                      <span class="cosmic-shockwave cosmic-wave-one"></span>
+                      <span class="cosmic-shockwave cosmic-wave-two"></span>
+                      <span class="cosmic-shockwave cosmic-wave-three"></span>
+                    </div>
+                    <div class="preview-loader-copy">
+                      <span class="preview-loader-eyebrow" id="previewLoaderEyebrow">Generating</span>
+                      <strong id="previewLoaderTitle">The stars are aligning…</strong>
+                      <span class="preview-loader-detail" id="previewLoaderDetail">The preview is getting ready while Supernova writes the files.</span>
+                    </div>
+                  </div>
                   <div class="empty-state" id="previewEmpty">
                     <span class="empty-icon"><svg class="i lg"><use href="#i-play"></use></svg></span>
-                    <h3>Rien à afficher pour l’instant</h3>
-                    <p>Demande une app dans le chat : l’aperçu apparaît ici dès le premier fichier écrit.</p>
+                    <h3>Nothing to show <em>yet</em></h3>
+                    <p>Ask for an app in the chat: the preview appears here as soon as the first file is written.</p>
                   </div>
                 </div>
               </div>
@@ -270,25 +323,25 @@
 
           <div class="view code-view hidden" id="codeView">
             <div class="tabs" role="tablist" aria-label="Code">
-              <button data-tab="files" class="active" role="tab"><svg class="i sm"><use href="#i-file-code"></use></svg><span>Fichiers</span></button>
+              <button data-tab="files" class="active" role="tab"><svg class="i sm"><use href="#i-file-code"></use></svg><span>Files</span></button>
               <button data-tab="terminal" role="tab"><svg class="i sm"><use href="#i-terminal"></use></svg><span>Terminal</span><span class="tab-badge hidden" id="termBadge"></span></button>
               <button data-tab="console" role="tab"><svg class="i sm"><use href="#i-logs"></use></svg><span>Console</span><span class="tab-badge hidden" id="consoleBadge"></span></button>
-              <button data-tab="journal" role="tab"><svg class="i sm"><use href="#i-history"></use></svg><span>Journal</span></button>
+              <button data-tab="journal" role="tab"><svg class="i sm"><use href="#i-history"></use></svg><span>Log</span></button>
             </div>
 
             <div class="tab-body">
               <div class="tab-panel files-panel active" data-panel="files">
-                <aside class="file-tree" id="fileTree" aria-label="Arborescence des fichiers"></aside>
+                <aside class="file-tree" id="fileTree" aria-label="File tree"></aside>
                 <div class="editor-wrap">
                   <div class="editor-bar">
-                    <span id="editorPath">Aucun fichier ouvert</span>
-                    <span id="editorDirty" class="dirty hidden" title="Modifications non enregistrées"></span>
+                    <span id="editorPath">No file open</span>
+                    <span id="editorDirty" class="dirty hidden" title="Unsaved changes"></span>
                     <div class="spacer"></div>
-                    <button id="newFileBtn" class="icon-btn small" title="Nouveau fichier" aria-label="Nouveau fichier"><svg class="i sm"><use href="#i-plus"></use></svg></button>
-                    <button id="deleteFileBtn" class="icon-btn small" title="Supprimer le fichier" aria-label="Supprimer le fichier"><svg class="i sm"><use href="#i-trash"></use></svg></button>
-                    <button id="saveFileBtn" class="btn subtle small">Enregistrer</button>
+                    <button id="newFileBtn" class="icon-btn small" title="New file" aria-label="New file"><svg class="i sm"><use href="#i-plus"></use></svg></button>
+                    <button id="deleteFileBtn" class="icon-btn small" title="Delete file" aria-label="Delete file"><svg class="i sm"><use href="#i-trash"></use></svg></button>
+                    <button id="saveFileBtn" class="btn subtle small">Save</button>
                   </div>
-                  <textarea id="editor" spellcheck="false" placeholder="Sélectionne un fichier dans l’arborescence…"></textarea>
+                  <textarea id="editor" spellcheck="false" placeholder="Select a file in the tree…"></textarea>
                 </div>
               </div>
 
@@ -305,9 +358,9 @@
               <div class="tab-panel console-panel" data-panel="console">
                 <div class="console" id="consoleOutput"></div>
                 <div class="console-bar">
-                  <span class="muted small">Console de l’aperçu — logs et erreurs</span>
+                  <span class="muted small">App preview console — logs and errors</span>
                   <div class="spacer"></div>
-                  <button id="clearConsoleBtn" class="btn subtle small">Vider</button>
+                  <button id="clearConsoleBtn" class="btn subtle small">Clear</button>
                 </div>
               </div>
 
@@ -320,31 +373,31 @@
           <div class="view search-view hidden" id="searchView">
             <div class="search-view-head">
               <div>
-                <span class="search-view-eyebrow">Web de l’agent</span>
-                <h3>Recherches effectuées</h3>
+                <span class="search-view-eyebrow">Agent web</span>
+                <h3>Search history</h3>
               </div>
-              <button id="clearSearchesBtn" class="btn subtle small" type="button">Vider</button>
+              <button id="clearSearchesBtn" class="btn subtle small" type="button">Clear</button>
             </div>
             <div class="search-list" id="searchList"></div>
           </div>
         </div>
       </section>
 
-      <aside class="panel-rail" aria-label="Panneaux de travail">
-        <button class="rail-btn" data-panel-toggle="preview" aria-pressed="true" title="Afficher ou masquer l’aperçu" aria-label="Aperçu"><svg class="i"><use href="#i-play"></use></svg></button>
-        <button class="rail-btn" data-panel-toggle="files" aria-pressed="false" title="Afficher ou masquer les fichiers" aria-label="Fichiers"><svg class="i"><use href="#i-file-code"></use></svg></button>
-        <button class="rail-btn" data-panel-toggle="terminal" aria-pressed="false" title="Afficher ou masquer le terminal" aria-label="Terminal"><svg class="i"><use href="#i-terminal"></use></svg></button>
-        <button class="rail-btn" data-panel-toggle="search" aria-pressed="false" title="Afficher ou masquer les recherches web" aria-label="Recherches"><svg class="i"><use href="#i-search"></use></svg></button>
+      <aside class="panel-rail" aria-label="Work panels">
+        <button class="rail-btn" data-panel-toggle="preview" aria-pressed="true" title="Show or hide preview" aria-label="Preview"><svg class="i"><use href="#i-play"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="files" aria-pressed="false" title="Show or hide files" aria-label="Files"><svg class="i"><use href="#i-file-code"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="terminal" aria-pressed="false" title="Show or hide terminal" aria-label="Terminal"><svg class="i"><use href="#i-terminal"></use></svg></button>
+        <button class="rail-btn" data-panel-toggle="search" aria-pressed="false" title="Show or hide web searches" aria-label="Searches"><svg class="i"><use href="#i-search"></use></svg></button>
       </aside>
     </main>
 
     <footer class="statusbar">
-      <span class="status-item"><i class="dot" aria-hidden="true"></i><span id="statusMode">Mode PC</span></span>
+      <span class="status-item"><i class="dot" aria-hidden="true"></i><span id="statusMode">PC mode</span></span>
       <span id="statusPath" class="status-item mono">—</span>
       <div class="spacer"></div>
-      <span id="statusFiles" class="status-item">0 fichier</span>
+      <span id="statusFiles" class="status-item">0 files</span>
       <span class="status-sep" aria-hidden="true"></span>
-      <span id="statusMcp" class="status-item">MCP : 0</span>
+      <span id="statusMcp" class="status-item">MCP: 0</span>
       <span class="status-sep" aria-hidden="true"></span>
       <span id="statusProvider" class="status-item">Supernova Engine</span>
     </footer>
@@ -353,37 +406,37 @@
   <!-- ── Nouveau projet ─────────────────────────────────────────────────── -->
   <dialog id="newProjectDialog" class="dialog">
     <form method="dialog" id="newProjectForm">
-      <h2>Nouveau projet</h2>
-      <p class="dialog-sub">Choisis où vit le projet : un dossier réel sur ta machine (dossier <code>Project - N</code> créé par défaut), ou le Cloud interne à Supernova IA, exportable en ZIP.</p>
+      <h2>New project</h2>
+      <p class="dialog-sub">Choose where the project lives: a real folder on your machine (a <code>Project - N</code> folder is created by default), or Supernova Cloud, which can be exported as a ZIP.</p>
 
       <label class="field">
-        <span>Nom du projet</span>
-        <input id="npName" required maxlength="80" placeholder="Ex : Café Lumen" />
+        <span>Project name</span>
+        <input id="npName" required maxlength="80" placeholder="e.g. Lumen Cafe" />
       </label>
 
       <fieldset class="radio-group">
-        <legend>Emplacement</legend>
+        <legend>Location</legend>
         <label class="radio">
           <input type="radio" name="npMode" value="pc" checked />
           <span class="radio-icon"><svg class="i"><use href="#i-monitor"></use></svg></span>
-          <span class="radio-text"><strong>Sur mon PC</strong><small>Un vrai dossier est créé sur le disque — <code>Project - N</code> si aucun chemin n’est indiqué.</small></span>
+          <span class="radio-text"><strong>On my PC</strong><small>A real folder is created on disk — <code>Project - N</code> if no path is provided.</small></span>
         </label>
         <label class="radio">
           <input type="radio" name="npMode" value="cloud" />
           <span class="radio-icon"><svg class="i"><use href="#i-cloud"></use></svg></span>
-          <span class="radio-text"><strong>Dans le Cloud Supernova</strong><small>Dossier interne à Supernova IA, invisible dans tes dossiers, export en ZIP à la demande.</small></span>
+          <span class="radio-text"><strong>In Supernova Cloud</strong><small>Internal Supernova AI folder, hidden from your folders, exportable as ZIP on demand.</small></span>
         </label>
       </fieldset>
 
       <label class="field" id="npRootRow">
-        <span>Dossier cible <em>(optionnel)</em></span>
-        <input id="npRoot" placeholder="Chemin absolu, ex : /Users/moi/Projets/mon-app" />
-        <span class="field-hint">Laisse vide : un dossier <code>Project - N</code> est créé dans le dossier de travail.</span>
+        <span>Target folder <em>(optional)</em></span>
+        <input id="npRoot" placeholder="Absolute path, e.g. /Users/me/Projects/my-app" />
+        <span class="field-hint">Leave empty: a <code>Project - N</code> folder is created in the working directory.</span>
       </label>
 
       <div class="dialog-actions">
-        <button value="cancel" class="btn subtle" formnovalidate>Annuler</button>
-        <button value="create" class="btn primary">Créer le projet</button>
+        <button value="cancel" class="btn subtle" formnovalidate>Cancel</button>
+        <button value="create" class="btn primary">Create project</button>
       </div>
     </form>
   </dialog>
@@ -391,141 +444,141 @@
   <!-- ── Paramètres ─────────────────────────────────────────────────────── -->
   <dialog id="settingsDialog" class="dialog wide">
     <div class="dialog-head">
-      <h2>Paramètres</h2>
-      <button class="icon-btn small" id="settingsCloseBtn" aria-label="Fermer"><svg class="i sm"><use href="#i-x"></use></svg></button>
+      <h2>Settings</h2>
+      <button class="icon-btn small" id="settingsCloseBtn" aria-label="Close"><svg class="i sm"><use href="#i-x"></use></svg></button>
     </div>
 
     <div class="settings-layout">
       <nav class="settings-nav" role="tablist">
-        <button data-section="ai" class="active"><svg class="i sm"><use href="#i-sparkles"></use></svg><span>Connexion IA</span></button>
+        <button data-section="ai" class="active"><svg class="i sm"><use href="#i-sparkles"></use></svg><span>AI connection</span></button>
         <button data-section="agent"><svg class="i sm"><use href="#i-sliders"></use></svg><span>Agent</span></button>
-        <button data-section="mcp"><svg class="i sm"><use href="#i-plug"></use></svg><span>Serveurs MCP</span></button>
-        <button data-section="voice"><svg class="i sm"><use href="#i-sun"></use></svg><span>Affichage</span></button>
-        <button data-section="about"><svg class="i sm"><use href="#i-info"></use></svg><span>À propos</span></button>
+        <button data-section="mcp"><svg class="i sm"><use href="#i-plug"></use></svg><span>MCP servers</span></button>
+        <button data-section="voice"><svg class="i sm"><use href="#i-sun"></use></svg><span>Appearance</span></button>
+        <button data-section="about"><svg class="i sm"><use href="#i-info"></use></svg><span>About</span></button>
       </nav>
 
       <div class="settings-body">
         <section class="settings-section active" data-section-panel="ai">
           <div class="section-head">
-            <h3>Fournisseur &amp; modèle</h3>
-            <p>Supernova parle à toutes les API compatibles OpenAI, plus Anthropic et Gemini. La clé est conservée dans <strong>ton navigateur</strong> et dans la sauvegarde locale de l’application ; elle n’est jamais envoyée ailleurs qu’au fournisseur choisi.</p>
+            <h3>Provider &amp; model</h3>
+            <p>Supernova works with every OpenAI-compatible API, plus Anthropic and Gemini. The key is stored in <strong>your browser</strong> and in the app’s local backup; it is never sent anywhere except the selected provider.</p>
           </div>
 
           <label class="field">
-            <span>Fournisseur</span>
+            <span>Provider</span>
             <select id="setProvider"></select>
           </label>
           <p class="hint" id="providerHint"></p>
 
           <div class="grid-2">
             <label class="field">
-              <span>URL de base</span>
+              <span>Base URL</span>
               <input id="setBaseUrl" spellcheck="false" placeholder="https://api.openai.com/v1" />
             </label>
             <label class="field">
-              <span>Modèle</span>
+              <span>Model</span>
               <input id="setModel" list="modelList" spellcheck="false" placeholder="gpt-4.1-mini" />
               <datalist id="modelList"></datalist>
             </label>
           </div>
 
           <label class="field">
-            <span>Clé d’API <em id="keyOptional"></em></span>
+            <span>API key <em id="keyOptional"></em></span>
             <input id="setApiKey" type="password" spellcheck="false" autocomplete="off" placeholder="sk-…" />
           </label>
 
           <div class="row">
-            <button id="btnLoadModels" class="btn subtle">Charger la liste des modèles</button>
+            <button id="btnLoadModels" class="btn subtle">Load model list</button>
             <span id="connStatus" class="hint"></span>
           </div>
 
           <label class="field">
-            <span>Température <output id="tempValue">0.7</output></span>
+            <span>Temperature <output id="tempValue">0.7</output></span>
             <input id="setTemperature" type="range" min="0" max="1" step="0.05" value="0.7" />
           </label>
 
           <div class="callout">
-            <strong>Sans clé</strong> — le <em>Supernova Engine</em> embarqué fonctionne hors ligne : il génère 5 types de projets, modifie l’existant, répond aux questions techniques et cherche sur le web.
+            <strong>No key needed</strong> — the built-in <em>Supernova Engine</em> works offline: it generates 5 project types, modifies existing projects, answers technical questions and searches the web.
           </div>
         </section>
 
         <section class="settings-section" data-section-panel="agent">
           <div class="section-head">
-            <h3>Comportement de l’agent</h3>
-            <p>Contrôle ce que l’agent peut écrire et exécuter sans validation.</p>
+            <h3>Agent behavior</h3>
+            <p>Control what the agent can write and run without approval.</p>
           </div>
 
           <label class="switch-row">
-            <span><strong>Appliquer les fichiers automatiquement</strong><small>Sinon, l’agent propose les fichiers et tu valides.</small></span>
+            <span><strong>Apply files automatically</strong><small>Otherwise, the agent proposes files and you approve them.</small></span>
             <input type="checkbox" id="setAutoApply" class="switch" />
           </label>
 
           <label class="switch-row">
-            <span><strong>Continuer après les outils MCP</strong><small>L’agent relance un tour avec les résultats des outils.</small></span>
+            <span><strong>Continue after MCP tools</strong><small>The agent runs another turn using the tool results.</small></span>
             <input type="checkbox" id="setAutoContinue" class="switch" />
           </label>
 
           <label class="field">
-            <span>Commandes shell</span>
+            <span>Shell commands</span>
             <select id="setShellPolicy">
-              <option value="ask">Me demander avant chaque commande</option>
-              <option value="auto">Exécuter automatiquement</option>
-              <option value="never">Ne jamais exécuter</option>
+              <option value="ask">Ask me before every command</option>
+              <option value="auto">Run automatically</option>
+              <option value="never">Never run</option>
             </select>
           </label>
 
           <label class="field">
-            <span>Langue de réponse</span>
+            <span>Response language</span>
             <select id="setLanguage">
-              <option value="français">Français</option>
-              <option value="english">English</option>
-              <option value="español">Español</option>
-              <option value="deutsch">Deutsch</option>
-              <option value="português">Português</option>
+              <option value="French">French</option>
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="German">German</option>
+              <option value="Portuguese">Portuguese</option>
             </select>
           </label>
 
           <label class="field">
-            <span>Instructions système personnalisées</span>
-            <textarea id="setSystemPrompt" rows="5" placeholder="Ex : toujours utiliser des fichiers séparés, commenter en français, éviter les dépendances…"></textarea>
+            <span>Custom system instructions</span>
+            <textarea id="setSystemPrompt" rows="5" placeholder="e.g. always use separate files, add comments in English, avoid dependencies…"></textarea>
           </label>
 
           <div class="callout">
-            <strong>Protocole d’action</strong> — l’agent écrit avec <code>&lt;file path="…"&gt;</code>, supprime avec <code>&lt;delete&gt;</code>, exécute avec <code>&lt;shell&gt;</code> et appelle MCP avec <code>&lt;mcp tool="…"&gt;</code>. Ce format fonctionne même avec les modèles sans <em>function calling</em>.
+            <strong>Action protocol</strong> — the agent writes with <code>&lt;file path="…"&gt;</code>, deletes with <code>&lt;delete&gt;</code>, runs commands with <code>&lt;shell&gt;</code> and calls MCP with <code>&lt;mcp tool="…"&gt;</code>. This format works even with models that do not support <em>function calling</em>.
           </div>
         </section>
 
         <section class="settings-section" data-section-panel="mcp">
           <div class="section-head">
-            <h3>Serveurs MCP</h3>
-            <p>Model Context Protocol : connecte des outils externes (fichiers, base de données, GitHub, navigateur…). Transports <code>stdio</code> (commande locale) et <code>http</code> (Streamable HTTP).</p>
+            <h3>MCP servers</h3>
+            <p>Model Context Protocol: connect external tools (files, databases, GitHub, browser…). Transports <code>stdio</code> (local command) and <code>http</code> (Streamable HTTP).</p>
           </div>
 
           <div class="mcp-presets">
             <button class="btn subtle small" data-mcp-preset="filesystem"><svg class="i sm"><use href="#i-plus"></use></svg>filesystem</button>
             <button class="btn subtle small" data-mcp-preset="memory"><svg class="i sm"><use href="#i-plus"></use></svg>memory</button>
             <button class="btn subtle small" data-mcp-preset="sequential-thinking"><svg class="i sm"><use href="#i-plus"></use></svg>sequential-thinking</button>
-            <button class="btn subtle small" data-mcp-preset="everything"><svg class="i sm"><use href="#i-plus"></use></svg>everything (démo)</button>
+            <button class="btn subtle small" data-mcp-preset="everything"><svg class="i sm"><use href="#i-plus"></use></svg>everything (demo)</button>
           </div>
 
           <div id="mcpList" class="mcp-list"></div>
 
           <div class="row">
-            <button id="mcpAddBtn" class="btn subtle"><svg class="i sm"><use href="#i-plus"></use></svg>Ajouter un serveur</button>
-            <button id="mcpSaveBtn" class="btn primary">Enregistrer</button>
-            <button id="mcpRefreshBtn" class="btn subtle">Découvrir les outils</button>
+            <button id="mcpAddBtn" class="btn subtle"><svg class="i sm"><use href="#i-plus"></use></svg>Add server</button>
+            <button id="mcpSaveBtn" class="btn primary">Save</button>
+            <button id="mcpRefreshBtn" class="btn subtle">Discover tools</button>
           </div>
           <div id="mcpStatus" class="mcp-status"></div>
         </section>
 
         <section class="settings-section" data-section-panel="voice">
           <div class="section-head">
-            <h3>Affichage &amp; vocal</h3>
-            <p>Style de l’interface, profondeur et préférences vocales.</p>
+            <h3>Appearance &amp; voice</h3>
+            <p>Interface style, depth and voice preferences.</p>
           </div>
 
           <div class="field">
-            <span id="themeStyleLabel">Style de thème</span>
+            <span id="themeStyleLabel">Theme style</span>
             <div class="theme-select" id="themeSelect">
               <button id="themeSelectBtn" class="theme-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="themeStyleLabel themeSelectValue">
                 <span class="theme-swatch" id="themeSelectSwatch" data-style="default" aria-hidden="true"></span>
@@ -535,55 +588,55 @@
               <div class="theme-select-menu" id="themeSelectMenu" role="listbox" aria-labelledby="themeStyleLabel" hidden>
                 <button type="button" role="option" data-theme-style="default" aria-selected="true">
                   <span class="theme-swatch" data-style="default" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Default theme</strong><small>Graphite, traits fins, accent chaud.</small></span>
+                  <span class="theme-option-copy"><strong>Default theme</strong><small>Graphite, fine lines, warm accent.</small></span>
                   <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
                 </button>
                 <button type="button" role="option" data-theme-style="glass" aria-selected="false">
                   <span class="theme-swatch" data-style="glass" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Liquid glass theme</strong><small>Surfaces translucides et flou d’arrière-plan.</small></span>
+                  <span class="theme-option-copy"><strong>Liquid glass theme</strong><small>Translucent surfaces and background blur.</small></span>
                   <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
                 </button>
                 <button type="button" role="option" data-theme-style="minimal" aria-selected="false">
                   <span class="theme-swatch" data-style="minimal" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Minimalist theme</strong><small>Sans ombres, sans flou ni profondeur 3D.</small></span>
+                  <span class="theme-option-copy"><strong>Minimalist theme</strong><small>No shadows, blur or 3D depth.</small></span>
                   <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
                 </button>
               </div>
             </div>
           </div>
-          <p class="hint">Le style se combine avec le mode clair ou sombre choisi par le bouton soleil / lune de la barre supérieure.</p>
+          <p class="hint">The style combines with the light or dark mode selected by the sun / moon button in the top bar.</p>
 
           <label class="field">
-            <span>Langue de dictée</span>
+            <span>Dictation language</span>
             <select id="setVoiceLang">
-              <option value="fr-FR">Français (France)</option>
-              <option value="fr-CA">Français (Canada)</option>
+              <option value="fr-FR">French (France)</option>
+              <option value="fr-CA">French (Canada)</option>
               <option value="en-US">English (US)</option>
               <option value="en-GB">English (UK)</option>
-              <option value="es-ES">Español</option>
-              <option value="de-DE">Deutsch</option>
+              <option value="es-ES">Spanish</option>
+              <option value="de-DE">German</option>
             </select>
           </label>
 
           <label class="switch-row">
-            <span><strong>Lire les réponses à voix haute</strong><small>Synthèse vocale du navigateur, automatiquement après chaque réponse.</small></span>
+            <span><strong>Read responses aloud</strong><small>Browser speech synthesis, automatically after every response.</small></span>
             <input type="checkbox" id="setAutoSpeak" class="switch" />
           </label>
 
           <div class="callout">
-            La dictée repose sur la <strong>Web Speech API</strong> : Chrome et Edge la prennent en charge nativement, Firefox ne supporte pas encore la reconnaissance vocale (la lecture, elle, fonctionne partout).
+            Dictation uses the <strong>Web Speech API</strong>: Chrome and Edge support it natively, Firefox does not support speech recognition yet (read-aloud works everywhere).
           </div>
 
           <details class="theme-guide">
-            <summary>Créer ton propre thème — résumé du tuto</summary>
+            <summary>Create your own theme — tutorial summary</summary>
             <ol>
-              <li>Ouvre <code>public/css/app.css</code> : tout le thème est piloté par les variables de <code>:root</code> (fonds, texte, accent, bordures, ombres).</li>
-              <li>Crée un bloc <code>:root[data-style="mon-theme"]</code> et redéfinis les variables utiles, y compris le relief (<code>--elev-1</code>, <code>--edge-light</code>, <code>--window-elev</code>).</li>
-              <li>Ajoute une option dans le menu <code>#themeSelectMenu</code> (un bouton <code>data-theme-style</code>).</li>
-              <li>Dans <code>public/js/settings.js</code>, applique le choix avec <code>document.documentElement.dataset.style = value</code> et enregistre-le avec <code>saveSettings({ themeStyle: value })</code>.</li>
-              <li>Teste le thème en clair et en sombre, vérifie les contrastes, puis recharge : le choix doit rester.</li>
+              <li>Open <code>public/css/app.css</code>: the entire theme is driven by the <code>:root</code> variables (backgrounds, text, accent, borders, shadows).</li>
+              <li>Create a <code>:root[data-style="my-theme"]</code> block and redefine the relevant variables, including depth (<code>--elev-1</code>, <code>--edge-light</code>, <code>--window-elev</code>).</li>
+              <li>Add an option to the <code>#themeSelectMenu</code> menu (a <code>data-theme-style</code> button).</li>
+              <li>In <code>public/js/settings.js</code>, apply the choice with <code>document.documentElement.dataset.style = value</code> and save it with <code>saveSettings({ themeStyle: value })</code>.</li>
+              <li>Test the theme in light and dark mode, check the contrast, then reload: the choice should persist.</li>
             </ol>
-            <pre><code>:root[data-style="mon-theme"] {
+            <pre><code>:root[data-style="my-theme"] {
   --bg: #101014;
   --panel: #17171d;
   --accent: #7c8cff;
@@ -592,26 +645,26 @@
           </details>
 
           <div class="row">
-            <button id="resetSettingsBtn" class="btn subtle danger">Réinitialiser mes réglages</button>
+            <button id="resetSettingsBtn" class="btn subtle danger">Reset my settings</button>
           </div>
         </section>
 
         <section class="settings-section" data-section-panel="about">
           <div class="section-head">
-            <h3>Supernova IA <span class="pill">v1.0.0</span></h3>
-            <p>Agent de code local : la boucle d’action d’un Claude Code, l’aperçu instantané d’un bolt.new.</p>
+            <h3>Supernova AI <span class="pill">v1.0.1</span></h3>
+            <p>Local coding agent: the action loop of Claude Code, the instant preview of bolt.new.</p>
           </div>
           <ul class="about-list">
             <li><strong>Multi-API</strong> — OpenAI, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Anthropic, Gemini, Ollama, LM Studio, vLLM…</li>
-            <li><strong>MCP</strong> — serveurs stdio et HTTP, outils exposés à l’agent.</li>
-            <li><strong>Aperçu</strong> — app live, code éditable, terminal, console, journal.</li>
-            <li><strong>PC / Cloud</strong> — dossier réel ou stockage interne Supernova avec export ZIP.</li>
-            <li><strong>Vocal</strong> — dictée et synthèse vocale.</li>
-            <li><strong>Local d’abord</strong> — clés dans le navigateur, projets sur ta machine.</li>
+            <li><strong>MCP</strong> — stdio and HTTP servers, tools exposed to the agent.</li>
+            <li><strong>Preview</strong> — live app, editable code, terminal, console, log.</li>
+            <li><strong>PC / Cloud</strong> — real folder or Supernova internal storage with ZIP export.</li>
+            <li><strong>Voice</strong> — dictation and speech synthesis.</li>
+            <li><strong>Local first</strong> — keys in the browser, projects on your machine.</li>
           </ul>
           <div id="aboutDirs" class="about-dirs"></div>
           <div class="callout warn">
-            Le terminal et l’agent exécutent de vraies commandes shell. Ne lance jamais Supernova sur un projet auquel tu ne ferais pas confiance à une IA, et garde <code>HOST=127.0.0.1</code> pour rester en local.
+            The terminal and the agent run real shell commands. Never run Supernova on a project you would not trust an AI with, and keep <code>HOST=127.0.0.1</code> to stay local.
           </div>
         </section>
       </div>
@@ -621,46 +674,113 @@
   <!-- ── Aide ───────────────────────────────────────────────────────────── -->
   <dialog id="helpDialog" class="dialog wide">
     <div class="dialog-head">
-      <h2>Bienvenue dans Supernova IA</h2>
-      <button class="icon-btn small" id="helpCloseBtn" aria-label="Fermer"><svg class="i sm"><use href="#i-x"></use></svg></button>
+      <h2>Welcome to Supernova AI</h2>
+      <button class="icon-btn small" id="helpCloseBtn" aria-label="Close"><svg class="i sm"><use href="#i-x"></use></svg></button>
     </div>
     <div class="help-body">
       <div class="help-grid">
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-sparkles"></use></svg></span>
-          <h3>Branche un modèle, ou pas</h3>
-          <p>Sans clé, le <strong>Supernova Engine</strong> local génère des sites, to-do, calculatrices, jeux et apps météo. Avec une clé (Paramètres → Connexion IA), tu débloques GPT, Claude, Gemini, Ollama…</p>
+          <h3>Connect a model, or don’t</h3>
+          <p>Without a key, the local <strong>Supernova Engine</strong> generates sites, to-do apps, calculators, games and weather apps. With a key (Settings → AI connection), you unlock GPT, Claude, Gemini, Ollama…</p>
         </article>
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-monitor"></use></svg></span>
-          <h3>Choisis PC ou Cloud</h3>
-          <p><strong>PC</strong> écrit un vrai dossier via le serveur Node. <strong>Cloud</strong> écrit dans un dossier interne à Supernova IA et propose un ZIP.</p>
+          <h3>Choose PC or Cloud</h3>
+          <p><strong>PC</strong> writes to a real folder through the Node server. <strong>Cloud</strong> writes to an internal Supernova AI folder and offers a ZIP export.</p>
         </article>
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-code"></use></svg></span>
-          <h3>Regarde le résultat</h3>
-          <p>La bascule <strong>Aperçu / Code</strong> passe de l’app au code (fichiers, terminal, console, journal). L’aperçu se rafraîchit à chaque fichier.</p>
+          <h3>See the result</h3>
+          <p>The <strong>Preview / Code</strong> toggle switches from the app to the code (files, terminal, console, log). The preview refreshes after every file.</p>
         </article>
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-mic"></use></svg></span>
-          <h3>Parle-lui</h3>
-          <p>Le micro dicte ton prompt, le haut-parleur lit les réponses. Tout passe par les API du navigateur.</p>
+          <h3>Talk to it</h3>
+          <p>The microphone dictates your prompt, the speaker reads responses aloud. Everything uses browser APIs.</p>
         </article>
       </div>
-      <h3>Raccourcis</h3>
+      <h3>Shortcuts</h3>
       <table class="shortcuts">
-        <tr><td><kbd>Entrée</kbd></td><td>Envoyer le message</td></tr>
-        <tr><td><kbd>Maj</kbd> + <kbd>Entrée</kbd></td><td>Aller à la ligne sans envoyer</td></tr>
-        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Enregistrer le fichier ouvert</td></tr>
-        <tr><td><kbd>Échap</kbd></td><td>Arrêter la génération en cours</td></tr>
-        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Fermer les fenêtres</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Send the message</td></tr>
+        <tr><td><kbd>Shift</kbd> + <kbd>Enter</kbd></td><td>Add a line without sending</td></tr>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Save the open file</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Stop the current generation</td></tr>
+        <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>Close dialogs</td></tr>
       </table>
-      <h3>Bon à savoir</h3>
+      <h3>Good to know</h3>
       <ul class="help-list">
-        <li>Un projet <strong>framework</strong> (React, Vue…) ne s’affiche pas tel quel : lance <code>npm install</code> puis <code>npm run dev</code> dans le Terminal, et mets l’URL du serveur de dev dans la barre d’aperçu.</li>
-        <li>Les serveurs MCP se configurent dans <strong>Paramètres → Serveurs MCP</strong>, avec une commande et ses arguments.</li>
-        <li>Le mode Cloud écrit les fichiers dans <code>data/cloud</code>, un dossier interne à Supernova IA : ils sont disponibles dans l’éditeur, le terminal et le ZIP, sans apparaître dans tes dossiers.</li>
+        <li>A <strong>framework</strong> project (React, Vue…) does not render as-is: run <code>npm install</code> then <code>npm run dev</code> in the Terminal, and put the dev server URL in the preview bar.</li>
+        <li>MCP servers are configured in <strong>Settings → MCP servers</strong>, with a command and its arguments.</li>
+        <li>Cloud mode writes files to <code>data/cloud</code>, an internal Supernova AI folder: they are available in the editor, terminal and ZIP, without appearing in your folders.</li>
       </ul>
+    </div>
+  </dialog>
+
+  <!-- ── GitHub ────────────────────────────────────────────────────────── -->
+  <dialog id="githubDialog" class="dialog github-dialog">
+    <div class="dialog-head">
+      <h2>GitHub</h2>
+      <button class="icon-btn small" id="githubCloseBtn" type="button" aria-label="Close"><svg class="i sm"><use href="#i-x"></use></svg></button>
+    </div>
+    <div class="github-body">
+      <div id="githubDisconnected" class="github-view">
+        <p class="dialog-sub">Connect your GitHub account with a personal access token. The token stays in Supernova’s local backup, like AI keys.</p>
+        <label class="field">
+          <span>Personal access token</span>
+          <input id="githubToken" type="password" spellcheck="false" autocomplete="off" placeholder="ghp_… or github_pat_…" />
+          <span class="field-hint">Scopes to select: <code>repo</code> and, to create a repository, <code>repo</code> + administration. <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Supernova%20AI" target="_blank" rel="noopener noreferrer">Create a GitHub token</a> · <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noopener noreferrer">help</a></span>
+        </label>
+        <div class="github-actions">
+          <button id="githubConnectBtn" class="btn primary" type="button">Connect GitHub</button>
+          <span id="githubConnectStatus" class="hint" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div id="githubConnected" class="github-view" hidden>
+        <div class="github-account">
+          <img id="githubAvatar" class="github-avatar" alt="" hidden />
+          <div class="github-identity">
+            <strong id="githubLogin">—</strong>
+            <span>Connected GitHub account</span>
+          </div>
+          <span class="github-account-state"><i aria-hidden="true"></i>Connected</span>
+        </div>
+
+        <div class="github-target">
+          <div class="github-target-head">
+            <label for="githubRepoSelect">Project repository</label>
+            <button id="githubRefreshRepos" class="btn subtle small" type="button">Refresh</button>
+          </div>
+          <select id="githubRepoSelect"><option value="">Choose a repository…</option></select>
+          <p class="hint" id="githubRepoHint">Select the repository that will receive this project’s files.</p>
+        </div>
+
+        <div class="github-create">
+          <label class="field">
+            <span>Create a new repository</span>
+            <div class="github-create-row">
+              <input id="githubNewRepo" spellcheck="false" placeholder="my-project" />
+              <button id="githubCreateRepo" class="btn subtle" type="button">Create and link</button>
+            </div>
+          </label>
+          <label class="github-private"><input id="githubPrivate" type="checkbox" checked /> Private repository</label>
+        </div>
+
+        <div class="github-publish">
+          <div>
+            <strong>Publish project</strong>
+            <p>Current files are committed to the default branch. Other files in the repository are preserved.</p>
+          </div>
+          <button id="githubPushBtn" class="btn primary" type="button" disabled>Publish</button>
+        </div>
+        <div id="githubRepoStatus" class="hint" role="status" aria-live="polite"></div>
+
+        <div class="github-footer">
+          <button id="githubDisconnectBtn" class="btn subtle danger" type="button">Disconnect</button>
+          <button id="githubOpenRepo" class="btn subtle" type="button" disabled>Open on GitHub</button>
+        </div>
+      </div>
     </div>
   </dialog>
 

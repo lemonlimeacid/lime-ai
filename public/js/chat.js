@@ -28,11 +28,13 @@ let modelPickerLabel = null;
 let modelMenu = null;
 let modelMenuList = null;
 let modelMenuToggle = null;
-let modelMenuCount = null;
+let modelMenuActiveName = null;
+let modelMenuDefaultBadge = null;
+let modelMenuEmpty = null;
 let modelEffortSlider = null;
 let modelEffortTicks = null;
-let modelEffortValue = null;
-let modelEffortHint = null;
+let modelCache = null;
+let modelFetchKey = '';
 let showAllModels = false;
 let lastModelRenderKey = '';
 
@@ -51,7 +53,7 @@ const BINARY_EXTENSIONS = new Set([
 const LANGUAGE_BY_EXT = {
   html: 'html', htm: 'html', css: 'css', scss: 'scss', sass: 'sass', less: 'less',
   js: 'js', mjs: 'js', cjs: 'js', jsx: 'jsx', ts: 'ts', tsx: 'tsx',
-  json: 'json', jsonc: 'json', md: 'markdown', mdx: 'mdx', txt: 'texte',
+  json: 'json', jsonc: 'json', md: 'markdown', mdx: 'mdx', txt: 'text',
   py: 'python', rb: 'ruby', php: 'php', go: 'go', rs: 'rust', java: 'java',
   c: 'c', h: 'c', cpp: 'cpp', hpp: 'cpp', cs: 'csharp', swift: 'swift', kt: 'kotlin',
   sh: 'bash', bash: 'bash', zsh: 'bash', ps1: 'powershell',
@@ -68,7 +70,7 @@ function languageFor(name) {
   const base = String(name || '').toLowerCase();
   if (base === 'dockerfile') return 'docker';
   if (base === '.gitignore' || base === '.env') return 'bash';
-  return LANGUAGE_BY_EXT[fileExtension(name)] || fileExtension(name) || 'texte';
+  return LANGUAGE_BY_EXT[fileExtension(name)] || fileExtension(name) || 'text';
 }
 
 function resetAttachments() {
@@ -79,24 +81,24 @@ function resetAttachments() {
 async function addFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
-  if (!state.project) return toast('Crée d’abord un projet.', 'warn');
+  if (!state.project) return toast('Create a project first.', 'warn');
 
   let total = pendingFiles.reduce((sum, file) => sum + file.content.length, 0);
   for (const file of files) {
     if (pendingFiles.length >= MAX_FILES) {
-      toast(`Maximum ${MAX_FILES} fichiers joints par message.`, 'warn', 4200);
+      toast(`Maximum ${MAX_FILES} files attached per message.`, 'warn', 4200);
       break;
     }
     if (!file.size) {
-      toast(`« ${file.name} » est vide.`, 'warn', 3600);
+      toast(`“${file.name}” is empty.`, 'warn', 3600);
       continue;
     }
     if (BINARY_EXTENSIONS.has(fileExtension(file.name))) {
-      toast(`« ${file.name} » : seuls les fichiers texte et le code sont acceptés.`, 'warn', 5200);
+      toast(`“${file.name}”: only text and code files are accepted.`, 'warn', 5200);
       continue;
     }
     if (file.size > MAX_FILE_BYTES) {
-      toast(`« ${file.name} » dépasse 512 Ko.`, 'warn', 4600);
+      toast(`“${file.name}” exceeds 512 KB.`, 'warn', 4600);
       continue;
     }
 
@@ -104,23 +106,23 @@ async function addFiles(fileList) {
     try {
       content = await file.text();
     } catch {
-      toast(`Lecture impossible : « ${file.name} ».`, 'err', 5200);
+      toast(`Unable to read: “${file.name}”.`, 'err', 5200);
       continue;
     }
     if (content.includes('\u0000')) {
-      toast(`« ${file.name} » est un fichier binaire. Joins du texte ou du code.`, 'warn', 5200);
+      toast(`“${file.name}” is a binary file. Attach text or code instead.`, 'warn', 5200);
       continue;
     }
     if (!content.trim()) {
-      toast(`« ${file.name} » est vide.`, 'warn', 3600);
+      toast(`“${file.name}” is empty.`, 'warn', 3600);
       continue;
     }
     if (content.length > MAX_FILE_CHARS) {
-      content = `${content.slice(0, MAX_FILE_CHARS)}\n… (fichier tronqué)`;
-      toast(`« ${file.name} » est tronqué à ${MAX_FILE_CHARS} caractères.`, 'info', 4200);
+      content = `${content.slice(0, MAX_FILE_CHARS)}\n… (file truncated)`;
+      toast(`“${file.name}” was truncated to ${MAX_FILE_CHARS} characters.`, 'info', 4200);
     }
     if (total + content.length > TOTAL_FILE_CHARS) {
-      toast(`Limite de ${TOTAL_FILE_CHARS} caractères joints atteinte.`, 'warn', 5200);
+      toast(`Attached text limit of ${TOTAL_FILE_CHARS} characters reached.`, 'warn', 5200);
       break;
     }
     total += content.length;
@@ -148,8 +150,8 @@ function renderAttachments() {
     const remove = h('button', {
       type: 'button',
       class: 'attach-remove',
-      title: 'Retirer',
-      'aria-label': `Retirer ${file.name}`,
+      title: 'Remove',
+      'aria-label': `Remove ${file.name}`,
     });
     remove.innerHTML = icon('x', 'xs');
     remove.addEventListener('click', () => {
@@ -168,24 +170,31 @@ function historyContent(message) {
   if (!files.length) return base;
   const blocks = files.map((file) => {
     const lang = String(file.language || '').replace(/`/g, '');
-    return `Fichier joint : ${file.name}\n\`\`\`${lang}\n${file.content || ''}\n\`\`\``;
+    return `Attached file: ${file.name}\n\`\`\`${lang}\n${file.content || ''}\n\`\`\``;
   });
   return [base, ...blocks].filter(Boolean).join('\n\n');
 }
 
 const AGENT_SUGGESTIONS = [
-  'Crée un site vitrine pour un café de quartier à Lyon',
-  'Fais une app de tâches avec sauvegarde locale',
-  'Génère un jeu de serpent jouable au clavier',
-  'Crée une app météo avec Open-Meteo',
-  'Rends le design plus moderne',
+  'Build a showcase website for a neighborhood café in Lyon',
+  'Build a task app with local save',
+  'Generate a keyboard-playable Snake game',
+  'Build a weather app with Open-Meteo',
+  'Make the design more modern',
 ];
 
 const CHAT_SUGGESTIONS = [
-  'Explique-moi comment fonctionne un routeur Express',
-  'Cherche les bonnes pratiques d’un formulaire accessible',
-  'Écris une fonction JavaScript de debounce',
-  'Compare CSS Grid et Flexbox',
+  'Explain how an Express router works',
+  'Find accessible form best practices',
+  'Write a JavaScript debounce function',
+  'Compare CSS Grid and Flexbox',
+];
+
+const SUPER_SUGGESTIONS = [
+  'Build a launch landing page and have the agents review it',
+  'Redesign this project’s home page to be clearer and more modern',
+  'Add instant search with filters and an empty state',
+  'Audit the project and fix the three most useful priorities',
 ];
 
 function uid() {
@@ -254,9 +263,9 @@ export function initChat() {
   enhanceBtn.addEventListener('click', enhancePrompt);
   $('#clearChatBtn').addEventListener('click', () => {
     if (!state.project) return;
-    if (state.streaming) return toast('Arrête la génération en cours avant d’effacer.', 'warn');
+    if (state.streaming) return toast('Stop the current generation before clearing.', 'warn');
     if (!state.chat.length) return;
-    if (!confirm('Effacer la conversation en cours ?')) return;
+    if (!confirm('Clear the current conversation?')) return;
     const thread = clearChat(state.project.id);
     if (thread) {
       state.thread = thread;
@@ -266,7 +275,7 @@ export function initChat() {
     renderChat();
     syncComposerPlaceholder();
     bus.emit('threads:changed');
-    toast('Conversation effacée.', 'ok', 2400);
+    toast('Conversation cleared.', 'ok', 2400);
   });
 
   bus.on('project:changed', () => {
@@ -291,6 +300,10 @@ export function initChat() {
     syncComposerPlaceholder();
   });
   bus.on('settings:changed', updatePills);
+  bus.on('superagents:changed', () => {
+    updatePills();
+    if (!state.chat.length) renderChat();
+  });
 
   updatePills();
   syncSpeakButton();
@@ -299,20 +312,20 @@ export function initChat() {
 }
 
 const EFFORT_LABELS = {
-  minimal: 'Minimal',
-  low: 'Rapide',
-  medium: 'Équilibré',
-  high: 'Puissant',
+  minimal: 'Fast',
+  low: 'Fast',
+  medium: 'Balanced',
+  high: 'Powerful',
   max: 'Maximum',
-  standard: 'Standard',
+  standard: 'Default',
 };
 
 function effortLabel(level) {
-  return EFFORT_LABELS[level] || String(level || 'Standard');
+  return EFFORT_LABELS[level] || String(level || 'Default');
 }
 
 function providerName(preset) {
-  return String(preset?.label || preset?.id || 'Fournisseur')
+  return String(preset?.label || preset?.id || 'Provider')
     .replace(/\s*\([^)]*\)\s*$/, '')
     .replace(/\s+—.*$/, '')
     .trim();
@@ -327,17 +340,91 @@ function effortLevelsFor(preset = presetFor(), model = state.settings.model) {
   return Array.isArray(levels) && levels.length ? levels : ['low', 'medium', 'high'];
 }
 
+/* Une clé n'est stockée que pour le fournisseur actif. Les autres catalogues
+ * restent donc masqués tant qu'ils ne sont pas configurés dans Paramètres. */
+function isProviderConnected(preset) {
+  if (!preset) return false;
+  if (preset.kind === 'local') return true;
+  if (preset.noKey) return preset.id === state.settings.provider;
+  return preset.id === state.settings.provider && Boolean(String(state.settings.apiKey || '').trim());
+}
+
+function modelCacheKey(preset) {
+  return `${preset?.id || ''}|${state.settings.baseUrl || preset?.baseUrl || ''}|${state.settings.apiKey || ''}`;
+}
+
+function isChatModel(model) {
+  return !/(embedding|embed|whisper|tts|dall-e|moderation|transcribe|speech|audio|image|rerank)/i.test(String(model));
+}
+
+function modelsForGroup(preset) {
+  const cached = modelCache?.key === modelCacheKey(preset) ? modelCache.models : null;
+  let models = Array.isArray(cached) && cached.length ? cached : [...(preset.models || [])];
+  models = [...new Set(models.map((model) => String(model || '').trim()).filter(Boolean))];
+  if (!cached && preset.id === state.settings.provider && state.settings.model && !models.includes(state.settings.model)) {
+    models.unshift(state.settings.model);
+  }
+  return models;
+}
+
+function modelGroups() {
+  const active = presetFor();
+  const groups = [];
+  const add = (preset) => groups.push({
+    ...preset,
+    name: providerName(preset),
+    models: modelsForGroup(preset),
+    active: preset.id === active?.id,
+  });
+
+  if (active && isProviderConnected(active)) {
+    add(active);
+  } else {
+    const local = (state.config.providers || []).find((preset) => preset.id === 'local');
+    if (local) add(local);
+  }
+  return groups;
+}
+
+async function refreshActiveProviderModels() {
+  const preset = presetFor();
+  if (!preset || preset.kind === 'local' || !isProviderConnected(preset)) return;
+  const cacheKey = modelCacheKey(preset);
+  if (modelCache?.key === cacheKey || modelFetchKey === cacheKey) return;
+  modelFetchKey = cacheKey;
+
+  try {
+    const result = await api.models({
+      provider: preset.id,
+      baseUrl: state.settings.baseUrl || preset.baseUrl || '',
+      apiKey: state.settings.apiKey || '',
+    });
+    const raw = Array.isArray(result.models) ? result.models : [];
+    if (raw.some((model) => String(model).startsWith('Warning'))) return;
+    const models = [...new Set(raw
+      .map((model) => String(model || '').trim())
+      .filter((model) => model && !model.startsWith('Warning') && isChatModel(model)))];
+    if (!models.length) return;
+    modelCache = { key: cacheKey, provider: preset.id, models };
+    if (!modelMenu?.hidden) renderModelMenu();
+  } catch {
+    // La liste statique du fournisseur reste disponible si /models échoue.
+  } finally {
+    if (modelFetchKey === cacheKey) modelFetchKey = '';
+  }
+}
+
 function initModelPicker() {
   modelPickerBtn = $('#modelPickerBtn');
   modelPickerLabel = $('#modelPickerLabel');
   modelMenu = $('#modelPickerMenu');
   modelMenuList = $('#modelMenuList');
   modelMenuToggle = $('#modelMenuToggle');
-  modelMenuCount = $('#modelMenuCount');
+  modelMenuActiveName = $('#modelMenuActiveName');
+  modelMenuDefaultBadge = $('#modelMenuDefaultBadge');
+  modelMenuEmpty = $('#modelMenuEmpty');
   modelEffortSlider = $('#modelEffortSlider');
   modelEffortTicks = $('#modelEffortTicks');
-  modelEffortValue = $('#modelEffortValue');
-  modelEffortHint = $('#modelEffortHint');
   if (!modelPickerBtn || !modelMenu) return;
 
   modelPickerBtn.addEventListener('click', (event) => {
@@ -372,7 +459,7 @@ function initModelPicker() {
 
 function syncModelPickerLabel() {
   if (!modelPickerLabel) return;
-  const model = state.settings.model || 'Modèle';
+  const model = state.settings.model || 'Model';
   modelPickerLabel.textContent = model;
   modelPickerBtn.title = `${providerName(presetFor())} · ${model}`;
 }
@@ -389,56 +476,39 @@ function syncModelEffort() {
   modelEffortSlider.max = String(last);
   modelEffortSlider.value = String(index);
   modelEffortSlider.disabled = levels.length <= 1 || state.streaming;
+  modelEffortSlider.setAttribute('aria-valuetext', effortLabel(level));
   modelEffortSlider.style.setProperty('--effort-progress', `${last ? (index / last) * 100 : 100}%`);
-  if (modelEffortValue) modelEffortValue.textContent = effortLabel(level);
   if (modelEffortTicks) {
     modelEffortTicks.innerHTML = levels.map((item, tick) =>
       `<span class="model-effort-tick${tick === index ? ' active' : ''}">${escapeText(effortLabel(item))}</span>`
     ).join('');
   }
-  if (modelEffortHint) {
-    modelEffortHint.textContent = levels.length > 1
-      ? `Niveaux disponibles pour ce modèle : ${levels.join(' · ')}.`
-      : 'Ce modèle utilise son réglage de performance par défaut.';
-  }
-}
-
-function modelGroups() {
-  const activeId = state.settings.provider;
-  const groups = (state.config.providers || [])
-    .map((preset) => ({
-      ...preset,
-      name: providerName(preset),
-      models: [...(preset.models || [])],
-      active: preset.id === activeId,
-    }))
-    .filter((preset) => preset.models.length);
-  const active = groups.find((preset) => preset.active);
-  if (active && !active.models.includes(state.settings.model)) active.models.unshift(state.settings.model);
-  if (active) return [active, ...groups.filter((preset) => preset !== active)];
-  return groups;
 }
 
 function renderModelMenu() {
   if (!modelMenu || !modelMenuList) return;
   const groups = modelGroups();
-  const visibleGroups = showAllModels
-    ? groups
-    : groups.filter((group, index) => group.active || index < 3);
+  const activeGroup = groups.find((group) => group.active);
+  const mustExpand = !activeGroup;
+  const expanded = showAllModels || mustExpand;
   const totalModels = groups.reduce((sum, group) => sum + group.models.length, 0);
-  const hiddenModels = groups.some((group) => {
-    const shown = visibleGroups.includes(group);
-    return shown && group.models.length > (showAllModels ? Infinity : 5);
-  });
-  const hasHidden = visibleGroups.length < groups.length || hiddenModels;
+  const hasMore = groups.length > 1 || totalModels > 1;
 
-  modelMenuCount.textContent = `${groups.length} fournisseur${groups.length > 1 ? 's' : ''} · ${totalModels} modèle${totalModels > 1 ? 's' : ''}`;
-  modelMenuToggle.hidden = !hasHidden;
-  modelMenuToggle.setAttribute('aria-expanded', String(showAllModels));
-  modelMenuToggle.innerHTML = `${showAllModels ? 'Show less' : 'Show more'}<svg class="i xs" aria-hidden="true"><use href="#i-chevron-down"></use></svg>`;
+  if (modelMenuActiveName) {
+    modelMenuActiveName.textContent = activeGroup
+      ? (state.settings.model || activeGroup.models[0] || 'Model')
+      : 'No API connected';
+    modelMenuActiveName.classList.toggle('muted', !activeGroup);
+  }
+  if (modelMenuDefaultBadge) modelMenuDefaultBadge.hidden = !activeGroup;
+  modelMenuToggle.hidden = !hasMore || mustExpand;
+  modelMenuToggle.setAttribute('aria-expanded', String(expanded));
+  modelMenuToggle.innerHTML = `${expanded ? 'Show less' : 'Show more'}<svg class="i xs" aria-hidden="true"><use href="#i-chevron-down"></use></svg>`;
+  modelMenuList.hidden = !expanded;
+  if (modelMenuEmpty) modelMenuEmpty.hidden = groups.length > 0;
 
   modelMenuList.innerHTML = '';
-  for (const group of visibleGroups) {
+  for (const group of groups) {
     const section = h('div', { class: 'model-provider' });
     const head = h('div', { class: 'model-provider-head' });
     head.append(
@@ -447,9 +517,7 @@ function renderModelMenu() {
     );
     section.append(head);
 
-    let models = showAllModels ? group.models : group.models.slice(0, 5);
-    if (group.active && !models.includes(state.settings.model)) models = [state.settings.model, ...models];
-    for (const model of models) {
+    for (const model of group.models) {
       const selected = group.id === state.settings.provider && model === state.settings.model;
       const item = h('button', {
         class: `model-item${selected ? ' active' : ''}`,
@@ -465,7 +533,7 @@ function renderModelMenu() {
     modelMenuList.append(section);
   }
 
-  lastModelRenderKey = `${state.settings.provider}/${state.settings.model}`;
+  lastModelRenderKey = `${state.settings.provider}/${state.settings.model}/${activeGroup ? 'connected' : 'offline'}`;
   syncModelEffort();
 }
 
@@ -489,6 +557,7 @@ function openModelMenu() {
   modelMenu.hidden = false;
   modelPickerBtn.setAttribute('aria-expanded', 'true');
   renderModelMenu();
+  refreshActiveProviderModels();
 }
 
 function closeModelMenu() {
@@ -500,7 +569,7 @@ function closeModelMenu() {
 function syncModelPicker() {
   syncModelPickerLabel();
   if (!modelMenu || modelMenu.hidden) return;
-  const key = `${state.settings.provider}/${state.settings.model}`;
+  const key = `${state.settings.provider}/${state.settings.model}/${isProviderConnected(presetFor()) ? 'connected' : 'offline'}`;
   if (key !== lastModelRenderKey) renderModelMenu();
   else syncModelEffort();
 }
@@ -508,8 +577,10 @@ function syncModelPicker() {
 function syncComposerPlaceholder() {
   if (!promptEl) return;
   promptEl.placeholder = state.thread?.kind === 'chat'
-    ? 'Pose ta question ou décris ce que tu cherches…'
-    : 'Décris ce que tu veux construire…';
+    ? 'Ask a question or describe what you’re looking for…'
+    : state.thread?.kind === 'super'
+      ? 'Describe the goal the agents should achieve…'
+      : 'Describe what you want to build…';
 }
 
 function autoGrow() {
@@ -523,11 +594,14 @@ function updatePills() {
   const statusProvider = $('#statusProvider');
   if (statusProvider) statusProvider.textContent = providerLabel();
   syncModelPicker();
-  const attachHint = ' Trombone : joins un fichier texte ou du code.';
-  if (state.settings.provider === 'local') {
-    hintEl.textContent = `Moteur local actif — aucun réseau, aucune clé. L’aperçu live se rafraîchit à chaque fichier.${attachHint}`;
+  const attachHint = ' Paperclip: attach a text or code file.';
+  if (state.thread?.kind === 'super') {
+    const agents = state.thread.agents?.length || 0;
+    hintEl.textContent = `Super agents — ${agents} agents + supervisor. One prompt starts automatic orchestration.${attachHint}`;
+  } else if (state.settings.provider === 'local') {
+    hintEl.textContent = `Local engine active — no network, no key. Live preview refreshes after each file.${attachHint}`;
   } else {
-    hintEl.textContent = `Connecté à ${providerLabel()} · Entrée pour envoyer, Maj+Entrée pour aller à la ligne.${attachHint}`;
+    hintEl.textContent = `Connected to ${providerLabel()} · Enter to send, Shift+Enter for a new line.${attachHint}`;
   }
 }
 
@@ -535,7 +609,7 @@ function syncSpeakButton() {
   if (!speakBtn) return;
   speakBtn.classList.toggle('active', Boolean(state.settings.autoSpeak));
   speakBtn.innerHTML = icon(state.settings.autoSpeak ? 'volume' : 'volume-x', 'sm');
-  speakBtn.title = state.settings.autoSpeak ? 'Lecture vocale activée' : 'Lire les réponses à voix haute';
+  speakBtn.title = state.settings.autoSpeak ? 'Read aloud enabled' : 'Read responses aloud';
 }
 
 /* ── Rendu ───────────────────────────────────────────────────────────────── */
@@ -567,21 +641,32 @@ export function renderChat() {
 }
 
 function welcomeCard() {
-  const kind = state.thread?.kind === 'chat' ? 'chat' : 'agent';
-  const projectName = state.project?.name || 'ton projet';
+  const isSuper = state.thread?.kind === 'super';
+  const kind = isSuper ? 'super' : state.thread?.kind === 'chat' ? 'chat' : 'agent';
+  const projectName = state.project?.name || 'your project';
   const node = h('div', { class: 'welcome' });
+  const title = isSuper
+    ? 'One goal, <em>multiple agents</em>'
+    : kind === 'chat'
+      ? 'Ask your <em>question</em>'
+      : 'Describe what you want to <em>build</em>';
+  const description = isSuper
+    ? `The supervisor splits the request, agents explore in parallel, then Supernova assembles and executes on <strong>${escapeText(projectName)}</strong>.`
+    : kind === 'chat'
+      ? 'Research, questions, or simple code. Project context remains available.'
+      : `Work on <strong>${escapeText(projectName)}</strong>: files, live preview, terminal, and MCP tools.`;
+  const agentCount = state.thread?.agents?.length || 0;
   node.innerHTML = `
     <div class="welcome-head">
-      <p class="welcome-eyebrow">${kind === 'chat' ? 'Chat' : 'Tâche de code'}</p>
-      <h2>${kind === 'chat' ? 'Pose ta question' : 'Décris ce que tu veux construire'}</h2>
-      <p>${kind === 'chat'
-        ? 'Recherche, question ou code simple. Le contexte du projet reste disponible.'
-        : `Travaille sur <strong>${escapeText(projectName)}</strong> : fichiers, aperçu live, terminal et outils MCP.`}</p>
+      <p class="welcome-eyebrow">${isSuper ? 'Super agents project' : kind === 'chat' ? 'Chat' : 'Coding task'}</p>
+      <h2>${title}</h2>
+      <p>${description}</p>
     </div>
     <div class="welcome-grid"></div>
-    <p class="welcome-note">Mode ${state.project?.mode === 'cloud' ? '<strong>Cloud</strong> — stockage interne Supernova, export ZIP' : '<strong>PC</strong> — écriture dans un dossier local'} · ${escapeText(providerLabel())}</p>`;
+    <p class="welcome-note">Mode ${state.project?.mode === 'cloud' ? '<strong>Cloud</strong> — Supernova internal storage, ZIP export' : '<strong>PC</strong> — writes to a local folder'} · ${escapeText(providerLabel())}${isSuper ? ` · ${agentCount} agents` : ''}</p>`;
   const grid = node.querySelector('.welcome-grid');
-  for (const suggestion of kind === 'chat' ? CHAT_SUGGESTIONS : AGENT_SUGGESTIONS) {
+  const suggestions = isSuper ? SUPER_SUGGESTIONS : kind === 'chat' ? CHAT_SUGGESTIONS : AGENT_SUGGESTIONS;
+  for (const suggestion of suggestions) {
     const button = h('button', { class: 'suggestion', type: 'button' }, suggestion);
     button.addEventListener('click', () => {
       promptEl.value = suggestion;
@@ -642,25 +727,25 @@ function renderMessageFiles(files) {
 function messageActions(message) {
   const row = h('div', { class: 'msg-actions' });
   if (message.content) {
-    const copy = h('button', { type: 'button', title: 'Copier le message', html: `${icon('copy', 'sm')}<span>Copier</span>` });
+    const copy = h('button', { type: 'button', title: 'Copy message', html: `${icon('copy', 'sm')}<span>Copy</span>` });
     copy.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(message.content);
-        toast('Message copié.', 'ok', 1600);
+        toast('Message copied.', 'ok', 1600);
       } catch {
-        toast('Copie impossible dans ce navigateur.', 'warn');
+        toast('Unable to copy in this browser.', 'warn');
       }
     });
     row.append(copy);
 
     if (message.role === 'assistant') {
-      const speak = h('button', { type: 'button', title: 'Lire à voix haute', html: icon('volume', 'sm') });
+      const speak = h('button', { type: 'button', title: 'Read aloud', html: icon('volume', 'sm') });
       speak.addEventListener('click', () => speakText(message.content));
       row.append(speak);
     }
   }
   if (message.role === 'assistant' && !state.streaming) {
-    const regen = h('button', { type: 'button', title: 'Régénérer la réponse', html: icon('regenerate', 'sm') });
+    const regen = h('button', { type: 'button', title: 'Regenerate response', html: icon('regenerate', 'sm') });
     regen.addEventListener('click', () => regenerate());
     row.append(regen);
   }
@@ -691,8 +776,8 @@ function renderActivity(act) {
 
   if (act.kind === 'approval' && !act.resolved) {
     const row = h('div', { class: 'row', style: 'margin-top:8px' });
-    const yes = h('button', { class: 'btn primary small', type: 'button' }, 'Exécuter');
-    const no = h('button', { class: 'btn subtle small', type: 'button' }, 'Refuser');
+    const yes = h('button', { class: 'btn primary small', type: 'button' }, 'Run');
+    const no = h('button', { class: 'btn subtle small', type: 'button' }, 'Deny');
     yes.addEventListener('click', () => resolveApproval(act, true));
     no.addEventListener('click', () => resolveApproval(act, false));
     row.append(yes, no);
@@ -700,7 +785,7 @@ function renderActivity(act) {
   }
 
   if (act.kind === 'proposal' && !act.resolved) {
-    const apply = h('button', { class: 'btn primary small', type: 'button', style: 'margin-top:8px' }, 'Appliquer les fichiers');
+    const apply = h('button', { class: 'btn primary small', type: 'button', style: 'margin-top:8px' }, 'Apply files');
     apply.addEventListener('click', async () => {
       try {
         for (const file of act.files || []) {
@@ -708,13 +793,13 @@ function renderActivity(act) {
         }
         act.resolved = true;
         act.status = 'ok';
-        act.title = `${act.files.length} fichier(s) appliqué(s)`;
-        toast('Fichiers appliqués.', 'ok');
+        act.title = `${act.files.length} file(s) applied`;
+        toast('Files applied.', 'ok');
         await refreshFiles();
         if (state.streaming && live) scheduleRender();
         else renderChat();
       } catch (error) {
-        toast(`Application impossible : ${error.message}`, 'err');
+        toast(`Unable to apply: ${error.message}`, 'err');
       }
     });
     body.append(apply);
@@ -725,13 +810,13 @@ function renderActivity(act) {
 }
 
 function resolveApproval(act, approved) {
-  if (!state.runId) return toast('Exécution introuvable.', 'err');
+  if (!state.runId) return toast('Run not found.', 'err');
   api
     .post(`/api/agent/${state.runId}/approve`, { callId: act.callId, approved })
     .then(() => {
       act.resolved = true;
       act.status = approved ? 'running' : 'warn';
-      act.title = approved ? `${act.title} — autorisé` : `${act.title} — refusé`;
+      act.title = approved ? `${act.title} — approved` : `${act.title} — denied`;
       if (state.streaming && live) scheduleRender();
       else renderChat();
     })
@@ -747,8 +832,8 @@ function scrollToBottom(force = false) {
 /* ── Envoi ───────────────────────────────────────────────────────────────── */
 
 export async function sendMessage(text) {
-  if (state.streaming) return toast('Une génération est déjà en cours.', 'warn', 2000);
-  if (!state.project) return toast('Crée d’abord un projet.', 'warn');
+  if (state.streaming) return toast('A generation is already running.', 'warn', 2000);
+  if (!state.project) return toast('Create a project first.', 'warn');
 
   const content = String(text || '').trim();
   const attachments = pendingFiles.map((file) => ({
@@ -827,6 +912,9 @@ async function runAssistant() {
       body: JSON.stringify({
         projectId: project.id,
         messages: history,
+        superAgents: state.thread?.kind === 'super'
+          ? (state.thread.agents || []).map((agent) => ({ id: agent.id, name: agent.name, model: agent.model }))
+          : [],
         settings: {
           provider: state.settings.provider,
           model: state.settings.model,
@@ -845,7 +933,7 @@ async function runAssistant() {
 
     if (!response.ok || !response.body) {
       const detail = await response.json().catch(() => ({}));
-      throw new Error(detail.error || `Erreur ${response.status}`);
+      throw new Error(detail.error || `Error ${response.status}`);
     }
 
     const reader = response.body.getReader();
@@ -876,10 +964,10 @@ async function runAssistant() {
     }
   } catch (error) {
     if (error.name === 'AbortError') {
-      assistant.activity.push({ kind: 'info', title: 'Génération arrêtée', status: 'warn', icon: 'square' });
+      assistant.activity.push({ kind: 'info', title: 'Generation stopped', status: 'warn', icon: 'square' });
     } else {
       assistant.error = true;
-      assistant.content = `${assistant.content}\n\n**Erreur** — ${error.message}`.trim();
+      assistant.content = `${assistant.content}\n\n**Error** — ${error.message}`.trim();
       toast(escapeText(error.message), 'err', 7000);
     }
   } finally {
@@ -935,6 +1023,95 @@ function handleEvent(event, assistant) {
       state.runId = event.runId;
       break;
 
+    case 'super_started': {
+      const agents = Array.isArray(event.agents) ? event.agents : [];
+      pushActivity(assistant, {
+        key: 'super:start',
+        kind: 'agent',
+        title: 'Super agent',
+        detail: `${agents.length} agents launched in parallel + supervisor.`,
+        status: 'running',
+        icon: 'sparkles',
+      });
+      break;
+    }
+
+    case 'super_plan': {
+      const started = assistant.activity.find((item) => item.key === 'super:start');
+      if (started) started.status = 'ok';
+      const tasks = Array.isArray(event.tasks) ? event.tasks : [];
+      pushActivity(assistant, {
+        key: 'super:plan',
+        kind: 'agent',
+        title: 'Supervisor plan',
+        detail: tasks.length
+          ? `${tasks.length} task(s) assigned: ${tasks.map((task) => task.task || task.title || '').filter(Boolean).join(' · ').slice(0, 500)}`
+          : 'The supervisor is preparing the assignment.',
+        status: 'ok',
+        icon: 'sparkles',
+      });
+      break;
+    }
+
+    case 'agent_started': {
+      const agent = event.agent || {};
+      pushActivity(assistant, {
+        key: `agent:${agent.id || agent.name}`,
+        kind: 'agent',
+        title: `${agent.name || 'Agent'} · ${agent.model || 'model'}`,
+        detail: event.task || 'analyzing…',
+        status: 'running',
+        icon: 'sparkles',
+      });
+      break;
+    }
+
+    case 'agent_done': {
+      const agent = event.agent || {};
+      const act = assistant.activity.find((item) => item.key === `agent:${agent.id || agent.name}`);
+      if (act) {
+        act.status = 'ok';
+        act.detail = `${event.duration ? `${event.duration}s · ` : ''}${event.chars || 0} characters received.`;
+        scheduleRender();
+      }
+      break;
+    }
+
+    case 'agent_error': {
+      const agent = event.agent || {};
+      const act = assistant.activity.find((item) => item.key === `agent:${agent.id || agent.name}`);
+      if (act) {
+        act.status = 'error';
+        act.detail = event.message || 'this agent failed';
+        scheduleRender();
+      } else {
+        pushActivity(assistant, {
+          kind: 'agent',
+          title: `${agent.name || 'Agent'} · ${agent.model || 'model'}`,
+          detail: event.message || 'this agent failed',
+          status: 'error',
+          icon: 'alert',
+        });
+      }
+      break;
+    }
+
+    case 'super_synthesis': {
+      for (const key of ['super:start', 'super:plan']) {
+        const act = assistant.activity.find((item) => item.key === key);
+        if (act && act.status === 'running') act.status = 'ok';
+      }
+      pushActivity(assistant, {
+        key: 'super:synthesis',
+        kind: 'agent',
+        title: 'Merging and execution',
+        detail: `The supervisor merges ${event.count || 0} contribution(s) and applies the solution.`,
+        status: 'running',
+        icon: 'sparkles',
+      });
+      break;
+    }
+
     case 'mode':
       if (state.project) state.project.mode = event.mode;
       break;
@@ -958,7 +1135,7 @@ function handleEvent(event, assistant) {
         key: `file:${event.path}`,
         kind: 'file',
         title: event.path,
-        detail: 'écriture en cours…',
+        detail: 'writing…',
         status: 'running',
       });
       break;
@@ -967,7 +1144,7 @@ function handleEvent(event, assistant) {
       const act = assistant.activity.find((item) => item.key === `file:${event.path}`);
       if (act) {
         act.bytes = (act.bytes || 0) + (event.text || '').length;
-        act.detail = `écriture en cours… ${act.bytes} caractères`;
+        act.detail = `writing… ${act.bytes} characters`;
       }
       break;
     }
@@ -977,18 +1154,18 @@ function handleEvent(event, assistant) {
         key: `file:${event.path}`,
         kind: 'file',
         title: event.path,
-        detail: `${event.bytes} o enregistrés`,
+        detail: `${event.bytes} B saved`,
         status: 'ok',
       });
-      act.detail = `${event.bytes} o enregistrés`;
-      bus.emit('log', { type: 'file', text: `Fichier écrit : <code>${escapeText(event.path)}</code> (${event.bytes} o)` });
+      act.detail = `${event.bytes} B saved`;
+      bus.emit('log', { type: 'file', text: `File written: <code>${escapeText(event.path)}</code> (${event.bytes} B)` });
       bus.emit('files:changed', { path: event.path });
       break;
     }
 
     case 'file_deleted':
-      pushActivity(assistant, { kind: 'file', title: `${event.path} supprimé`, status: 'warn', icon: 'trash' });
-      bus.emit('log', { type: 'file', text: `Fichier supprimé : <code>${escapeText(event.path)}</code>` });
+      pushActivity(assistant, { kind: 'file', title: `${event.path} deleted`, status: 'warn', icon: 'trash' });
+      bus.emit('log', { type: 'file', text: `File deleted: <code>${escapeText(event.path)}</code>` });
       bus.emit('files:changed', {});
       break;
 
@@ -996,7 +1173,7 @@ function handleEvent(event, assistant) {
       pushActivity(assistant, {
         kind: 'proposal',
         title: event.path,
-        detail: `${event.bytes} o proposés — applique pour écrire le fichier.`,
+        detail: `${event.bytes} B proposed — apply to write the file.`,
         status: 'warn',
         files: [{ path: event.path, content: event.content }],
       });
@@ -1005,7 +1182,7 @@ function handleEvent(event, assistant) {
     case 'proposals':
       pushActivity(assistant, {
         kind: 'proposal',
-        title: `${event.files.length} fichier(s) proposé(s)`,
+        title: `${event.files.length} file(s) proposed`,
         detail: event.files.map((file) => file.path).join(', '),
         status: 'warn',
         files: event.files,
@@ -1017,11 +1194,11 @@ function handleEvent(event, assistant) {
         key: `shell:${event.command}`,
         kind: 'shell',
         title: event.command,
-        detail: 'exécution…',
+        detail: 'running…',
         status: 'running',
       });
       bus.emit('terminal:append', { text: `\n$ ${event.command}\n`, stream: 'cmd' });
-      bus.emit('log', { type: 'shell', text: `Commande : <code>${escapeText(event.command)}</code>` });
+      bus.emit('log', { type: 'shell', text: `Command: <code>${escapeText(event.command)}</code>` });
       break;
 
     case 'shell_output':
@@ -1030,7 +1207,7 @@ function handleEvent(event, assistant) {
         const act = assistant.activity.find((item) => item.kind === 'shell' && item.status === 'running');
         if (act) {
           act.output = `${act.output || ''}${event.text || ''}`;
-          act.detail = (act.output.slice(-400) || '').trim() || 'exécution…';
+          act.detail = (act.output.slice(-400) || '').trim() || 'running…';
           scheduleRender();
         }
       }
@@ -1051,7 +1228,7 @@ function handleEvent(event, assistant) {
       pushActivity(assistant, {
         kind: 'shell',
         title: event.command,
-        detail: 'refusée — commande non exécutée',
+        detail: 'denied — command not run',
         status: 'warn',
         icon: 'ban',
       });
@@ -1060,7 +1237,7 @@ function handleEvent(event, assistant) {
     case 'approval_request':
       pushActivity(assistant, {
         kind: 'approval',
-        title: 'Commande à autoriser',
+        title: 'Command awaiting approval',
         detail: event.payload?.command || '',
         callId: event.callId,
         status: 'warn',
@@ -1073,15 +1250,15 @@ function handleEvent(event, assistant) {
       if (act && !act.resolved) {
         act.resolved = true;
         act.status = 'warn';
-        act.detail = 'délai dépassé — commande refusée';
+        act.detail = 'timed out — command denied';
       }
       scheduleRender();
       break;
     }
 
     case 'tool_start':
-      pushActivity(assistant, { key: `tool:${event.tool}`, kind: 'tool', title: event.tool, detail: 'appel MCP…', status: 'running' });
-      bus.emit('log', { type: 'tool', text: `Outil MCP : <code>${escapeText(event.tool)}</code>` });
+      pushActivity(assistant, { key: `tool:${event.tool}`, kind: 'tool', title: event.tool, detail: 'MCP call…', status: 'running' });
+      bus.emit('log', { type: 'tool', text: `MCP tool: <code>${escapeText(event.tool)}</code>` });
       break;
 
     case 'tool_result': {
@@ -1117,24 +1294,33 @@ function handleEvent(event, assistant) {
     case 'stats':
       bus.emit('log', {
         type: 'info',
-        text: `Génération terminée · ${event.filesWritten || 0} fichier(s) · ${event.toolCalls || 0} outil(s) MCP`,
+        text: `Generation complete · ${event.filesWritten || 0} file(s) · ${event.toolCalls || 0} MCP tool(s)`,
       });
       break;
 
     case 'error':
       assistant.error = true;
-      assistant.content = `${assistant.content}\n\n**Erreur** — ${event.message}`.trim();
-      toast(escapeText(event.message || 'Erreur'), 'err', 7000);
+      assistant.content = `${assistant.content}\n\n**Error** — ${event.message}`.trim();
+      toast(escapeText(event.message || 'Error'), 'err', 7000);
       scheduleRender();
       break;
 
     case 'cancelled':
-      assistant.activity.push({ kind: 'info', title: 'Génération annulée', status: 'warn', icon: 'square' });
+      assistant.activity.push({ kind: 'info', title: 'Generation cancelled', status: 'warn', icon: 'square' });
       scheduleRender();
       break;
 
     case 'done':
-      bus.emit('log', { type: 'info', text: 'Réponse terminée' });
+      // Les activités d'orchestration n'ont pas de « close » propre : on les
+      // termine ici pour ne pas laisser de spinner après la réponse finale.
+      for (const act of assistant.activity) {
+        if (act.status !== 'running') continue;
+        if (act.key === 'super:start' || act.key === 'super:plan' || act.key === 'super:synthesis' || act.key?.startsWith('agent:')) {
+          act.status = 'ok';
+        }
+      }
+      scheduleRender();
+      bus.emit('log', { type: 'info', text: 'Response complete' });
       break;
 
     default:
@@ -1153,6 +1339,7 @@ function setStreaming(on) {
   if (modelEffortSlider) modelEffortSlider.disabled = on;
   promptEl.disabled = false;
   document.body.classList.toggle('is-streaming', on);
+  bus.emit('streaming:changed', on);
   if (on) {
     saveTimer = setInterval(() => saveChat(state.project?.id, state.chat), 2500);
   } else {
@@ -1211,7 +1398,7 @@ async function enhancePrompt() {
   const text = promptEl.value.trim();
   if (!text) {
     promptEl.focus();
-    return toast('Écris d’abord une idée, même courte.', 'warn', 2400);
+    return toast('Write an idea first, even a short one.', 'warn', 2400);
   }
   const original = text;
   enhanceBtn.disabled = true;
@@ -1221,10 +1408,10 @@ async function enhancePrompt() {
     promptEl.value = result.prompt;
     autoGrow();
     promptEl.focus();
-    toast('Prompt enrichi. Tu peux le modifier avant d’envoyer.', 'ok', 4000);
+    toast('Prompt enhanced. You can edit it before sending.', 'ok', 4000);
     promptEl.dataset.original = original;
   } catch (error) {
-    toast(`Amélioration impossible : ${escapeText(error.message)}`, 'err', 6000);
+    toast(`Unable to enhance: ${escapeText(error.message)}`, 'err', 6000);
   } finally {
     enhanceBtn.disabled = false;
     enhanceBtn.innerHTML = icon('sparkles', 'sm');
@@ -1237,7 +1424,7 @@ function toggleDictation() {
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Recognition) {
     return toast(
-      'La dictée n’est pas disponible dans ce navigateur. Essaie Chrome ou Edge (la lecture vocale, elle, fonctionne partout).',
+      'Dictation is not available in this browser. Try Chrome or Edge (read-aloud works everywhere).',
       'warn',
       7000
     );
@@ -1249,15 +1436,15 @@ function toggleDictation() {
 
   const base = promptEl.value;
   const rec = new Recognition();
-  rec.lang = state.settings.voiceLang || 'fr-FR';
+  rec.lang = state.settings.voiceLang || 'en-US';
   rec.interimResults = true;
   rec.continuous = false;
   rec.maxAlternatives = 1;
 
   rec.onstart = () => {
     micBtn.classList.add('recording');
-    micBtn.title = 'Arrêter la dictée';
-    toast('Écoute en cours — parle maintenant.', 'info', 2200);
+    micBtn.title = 'Stop dictation';
+    toast('Listening — speak now.', 'info', 2200);
   };
 
   rec.onresult = (event) => {
@@ -1273,15 +1460,15 @@ function toggleDictation() {
   };
 
   rec.onerror = (event) => {
-    if (event.error === 'no-speech') toast('Aucune voix détectée, réessaie.', 'warn');
-    else if (event.error === 'not-allowed') toast('Micro refusé : autorise l’accès au microphone.', 'err', 6000);
-    else toast(`Dictée : ${event.error}`, 'err');
+    if (event.error === 'no-speech') toast('No speech detected, try again.', 'warn');
+    else if (event.error === 'not-allowed') toast('Microphone denied: allow microphone access.', 'err', 6000);
+    else toast(`Dictation: ${event.error}`, 'err');
   };
 
   rec.onend = () => {
     recognition = null;
     micBtn.classList.remove('recording');
-    micBtn.title = 'Dicter à la voix';
+    micBtn.title = 'Dictate';
     promptEl.focus();
   };
 
@@ -1296,14 +1483,14 @@ function toggleDictation() {
 
 export function speakText(text) {
   if (!('speechSynthesis' in window)) {
-    toast('Synthèse vocale non supportée par ce navigateur.', 'warn');
+    toast('Speech synthesis is not supported by this browser.', 'warn');
     return;
   }
   const clean = stripProtocol(text).replace(/[*_`#>]/g, '').replace(/\[(.*?)\]\(.*?\)/g, '$1').slice(0, 3500);
   if (!clean) return;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(clean);
-  utterance.lang = state.settings.voiceLang || 'fr-FR';
+  utterance.lang = state.settings.voiceLang || 'en-US';
   utterance.rate = 1.02;
   speechSynthesis.speak(utterance);
 }
@@ -1312,8 +1499,8 @@ function toggleAutoSpeak() {
   const next = !state.settings.autoSpeak;
   bus.emit('settings:patch', { autoSpeak: next });
   syncSpeakButton();
-  toast(next ? 'Lecture vocale activée.' : 'Lecture vocale désactivée.', 'ok', 2200);
-  if (next) speakText('Lecture vocale activée.');
+  toast(next ? 'Read aloud enabled.' : 'Read aloud disabled.', 'ok', 2200);
+  if (next) speakText('Read aloud enabled.');
 }
 
 export { openFile };

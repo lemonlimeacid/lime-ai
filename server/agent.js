@@ -121,60 +121,60 @@ function cleanContent(content) {
 
 export function buildSystemPrompt({ project, settings = {}, tools = [] }) {
   const mode = project?.mode === 'cloud'
-    ? 'CLOUD (stockage interne à Supernova IA, export ZIP, dossier invisible pour l’utilisateur)'
-    : 'PC (écriture directe dans un dossier de la machine)';
-  const outline = project ? store.projectOutline(project.id, 160) : '(aucun projet)';
+    ? 'CLOUD (Supernova AI internal storage, ZIP export, folder hidden from the user)'
+    : 'PC (direct writes to a folder on the machine)';
+  const outline = project ? store.projectOutline(project.id, 160) : '(no project)';
   const toolList = tools.length
     ? tools
         .map((tool) => {
-          const schema = tool.schema ? ` — schéma: ${JSON.stringify(tool.schema).slice(0, 400)}` : '';
-          return `- \`${tool.serverId}.${tool.name}\` : ${tool.description || 'sans description'}${schema}`;
+          const schema = tool.schema ? ` — schema: ${JSON.stringify(tool.schema).slice(0, 400)}` : '';
+          return `- \`${tool.serverId}.${tool.name}\` : ${tool.description || 'no description'}${schema}`;
         })
         .join('\n')
-    : '(aucun serveur MCP connecté)';
+    : '(no MCP server connected)';
 
   const custom = String(settings.systemPrompt || '').trim();
 
-  return `Tu es **Supernova IA**, un agent de développement logiciel autonome qui travaille dans un projet local.
-Tu combines la rigueur d'un agent de code (lecture de projet, écriture de fichiers, exécution de commandes, outils MCP) et la rapidité d'un générateur d'applications avec aperçu live.
+  return `You are **Supernova AI**, an autonomous software development agent working in a local project.
+You combine the rigor of a coding agent (project reading, file writing, command execution, MCP tools) with the speed of an app generator with a live preview.
 
-Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-Langue de réponse : ${settings.language || 'français'}
-Mode du projet : ${mode}
-Nom du projet : ${project?.name || '—'}
-Dossier / espace de travail : ${project?.mode === 'cloud' ? '(cloud interne Supernova)' : project?.rootDir || '—'}
+Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+Response language: ${settings.language || 'English'}
+Project mode: ${mode}
+Project name: ${project?.name || '—'}
+Folder / workspace: ${project?.mode === 'cloud' ? '(Supernova internal cloud)' : project?.rootDir || '—'}
 
-Arborescence actuelle :
+Current file tree:
 ${outline}
 
-Outils MCP disponibles :
+Available MCP tools:
 ${toolList}
 
-## Protocole d'action (OBLIGATOIRE)
-Pour agir, utilise UNIQUEMENT ces balises. Tout le reste est du texte affiché à l'utilisateur.
+## Action protocol (REQUIRED)
+To act, use ONLY these tags. Everything else is text shown to the user.
 
-<file path="chemin/relatif.ext">
-contenu COMPLET du fichier
+<file path="relative/path.ext">
+COMPLETE file content
 </file>
 
-<delete path="chemin/relatif.ext"/>
+<delete path="relative/path.ext"/>
 
-<shell>commande shell</shell>
+<shell>shell command</shell>
 
-<mcp tool="serveur.outil">{"argument": "valeur"}</mcp>
+<mcp tool="server.tool">{"argument": "value"}</mcp>
 
-Règles :
-- Écris toujours le fichier **entier** (jamais de « … » ni de diff partiel).
-- Chemins relatifs, sans \`..\`, sans chemin absolu. Crée les sous-dossiers implicitement.
-- Un bloc <file> par fichier ; plusieurs fichiers = plusieurs blocs.
-- Utilise <shell> pour installer, lancer un build ou tester. Les commandes s'exécutent à la racine du projet ; attends le résultat avant de conclure.
-- N'appelle un outil MCP que s'il est listé ci-dessus, avec des arguments conformes au schéma.
-- Reste concis en texte : une phrase d'intention, puis les blocs, puis un résumé de 2–4 puces.
-- Si l'utilisateur demande une modification ciblée, réécris seulement les fichiers concernés.
-- Ne mets pas de balises Markdown dans les blocs <file>.
-- Si une information manque, fais une hypothèse raisonnable et indique-la.
-- Pour un projet web simple, ne crée pas de dépendances : HTML/CSS/JS suffit et l'aperçu est instantané.
-${custom ? `\n## Instructions supplémentaires de l'utilisateur\n${custom}` : ''}`;
+Rules:
+- Always write the **entire** file (never “…” or a partial diff).
+- Relative paths, no \`..\`, no absolute paths. Create subfolders implicitly.
+- One <file> block per file; multiple files = multiple blocks.
+- Use <shell> to install, build, or test. Commands run at the project root; wait for the result before concluding.
+- Only call an MCP tool if it is listed above, with arguments matching the schema.
+- Keep text concise: one sentence of intent, then the blocks, then a 2–4 bullet summary.
+- If the user asks for a targeted change, rewrite only the affected files.
+- Do not put Markdown fences inside <file> blocks.
+- If information is missing, make a reasonable assumption and state it.
+- For a simple web project, do not add dependencies: HTML/CSS/JS is enough and the preview is instant.
+${custom ? `\n## Additional user instructions\n${custom}` : ''}`;
 }
 
 /* ── Exécution shell ─────────────────────────────────────────────────────── */
@@ -184,8 +184,8 @@ const SHELL_DISABLED = process.env.SUPERNOVA_DISABLE_SHELL === '1';
 function runShell({ command, cwd, emit, signal, timeout = 180000 }) {
   return new Promise((resolve) => {
     if (SHELL_DISABLED) {
-      emit({ type: 'shell_end', code: 1, output: 'Exécution shell désactivée (SUPERNOVA_DISABLE_SHELL=1).' });
-      resolve({ code: 1, output: 'shell désactivé' });
+      emit({ type: 'shell_end', code: 1, output: 'Shell execution disabled (SUPERNOVA_DISABLE_SHELL=1).' });
+      resolve({ code: 1, output: 'shell disabled' });
       return;
     }
     const shell = process.platform === 'win32'
@@ -214,7 +214,7 @@ function runShell({ command, cwd, emit, signal, timeout = 180000 }) {
     };
 
     const timer = setTimeout(() => {
-      output += '\n[Supernova] Délai dépassé, commande interrompue.';
+      output += '\n[Supernova] Timed out, command interrupted.';
       child.kill('SIGKILL');
       finish(124);
     }, timeout);
@@ -268,7 +268,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
     .slice(-24)
     .map((message) => ({ role: message.role, content: String(message.content || '') }));
 
-  if (!history.length) throw new Error('Aucun message à envoyer.');
+  if (!history.length) throw new Error('No messages to send.');
 
   let finalText = '';
   let filesWritten = 0;
@@ -308,7 +308,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
             const filePath = String(attrs.path || '').trim();
             const content = cleanContent(event.content);
             if (!filePath) {
-              emit({ type: 'warning', message: 'Bloc fichier sans attribut path ignoré.' });
+              emit({ type: 'warning', message: 'File block without a path attribute ignored.' });
               continue;
             }
             if (settings.autoApply === false) {
@@ -320,7 +320,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
                 filesWritten++;
                 emit({ type: 'file_saved', path: info.path, bytes: info.size });
               } catch (error) {
-                emit({ type: 'error', message: `Écriture impossible (${filePath}) : ${error.message}` });
+                emit({ type: 'error', message: `Unable to write (${filePath}): ${error.message}` });
               }
             }
           } else if (type === 'delete') {
@@ -330,7 +330,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
               store.deleteFile(project.id, filePath);
               emit({ type: 'file_deleted', path: filePath });
             } catch (error) {
-              emit({ type: 'error', message: `Suppression impossible : ${error.message}` });
+              emit({ type: 'error', message: `Unable to delete: ${error.message}` });
             }
           } else if (type === 'shell') {
             const command = String(event.content || '').trim();
@@ -362,7 +362,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
                 try {
                   args = JSON.parse(argsText);
                 } catch {
-                  emit({ type: 'tool_result', tool: toolName, error: 'Arguments JSON invalides', result: argsText.slice(0, 500) });
+                  emit({ type: 'tool_result', tool: toolName, error: 'Invalid JSON arguments', result: argsText.slice(0, 500) });
                   return;
                 }
               }
@@ -436,7 +436,7 @@ export async function runAgent({ projectId, messages, settings = {}, emit, signa
     history.push({ role: 'assistant', content: stepText.slice(0, 12000) });
     history.push({
       role: 'user',
-      content: `Résultats des outils MCP :${toolOutput}\n\nContinue la tâche en te basant sur ces résultats, ou conclus si c'est terminé.`,
+      content: `MCP tool results:${toolOutput}\n\nContinue the task based on these results, or conclude if it is done.`,
     });
   }
 

@@ -10,11 +10,11 @@ import { runLocalEngine, localUpgradePrompt } from './local-engine.js';
 export const PROVIDER_PRESETS = [
   {
     id: 'local',
-    label: 'Supernova Engine (local, sans clé)',
+    label: 'Supernova Engine (local, no key)',
     kind: 'local',
     baseUrl: '',
     models: ['supernova-mini'],
-    hint: 'Moteur intégré : code des petits projets, discute et cherche sur le web. Aucune clé requise.',
+    hint: 'Built-in engine: codes small projects, chats, and searches the web. No key required.',
   },
   {
     id: 'openai',
@@ -22,7 +22,7 @@ export const PROVIDER_PRESETS = [
     kind: 'openai',
     baseUrl: 'https://api.openai.com/v1',
     models: ['gpt-4.1-mini', 'gpt-4.1', 'gpt-4o', 'gpt-4o-mini', 'o4-mini'],
-    hint: 'Clé sk-… disponible sur platform.openai.com',
+    hint: 'sk-… key available at platform.openai.com',
   },
   {
     id: 'anthropic',
@@ -30,7 +30,7 @@ export const PROVIDER_PRESETS = [
     kind: 'anthropic',
     baseUrl: 'https://api.anthropic.com',
     models: ['claude-sonnet-4-5', 'claude-opus-4-1', 'claude-haiku-4-5'],
-    hint: 'Clé sk-ant-… disponible sur console.anthropic.com',
+    hint: 'sk-ant-… key available at console.anthropic.com',
   },
   {
     id: 'google',
@@ -38,23 +38,23 @@ export const PROVIDER_PRESETS = [
     kind: 'google',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     models: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
-    hint: 'Clé AI Studio (aistudio.google.com/apikey)',
+    hint: 'AI Studio key (aistudio.google.com/apikey)',
   },
   {
     id: 'openrouter',
-    label: 'OpenRouter (300+ modèles)',
+    label: 'OpenRouter (300+ models)',
     kind: 'openai',
     baseUrl: 'https://openrouter.ai/api/v1',
     models: ['anthropic/claude-sonnet-4.5', 'openai/gpt-4.1-mini', 'google/gemini-2.5-flash', 'deepseek/deepseek-chat'],
-    hint: 'Une seule clé pour tous les modèles : openrouter.ai/keys',
+    hint: 'One key for all models: openrouter.ai/keys',
   },
   {
     id: 'groq',
-    label: 'Groq (très rapide)',
+    label: 'Groq (very fast)',
     kind: 'openai',
     baseUrl: 'https://api.groq.com/openai/v1',
     models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'qwen/qwen3-32b'],
-    hint: 'Clé gratuite sur console.groq.com',
+    hint: 'Free key at console.groq.com',
   },
   {
     id: 'mistral',
@@ -62,7 +62,7 @@ export const PROVIDER_PRESETS = [
     kind: 'openai',
     baseUrl: 'https://api.mistral.ai/v1',
     models: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'],
-    hint: 'Clé sur console.mistral.ai',
+    hint: 'Key at console.mistral.ai',
   },
   {
     id: 'deepseek',
@@ -70,7 +70,7 @@ export const PROVIDER_PRESETS = [
     kind: 'openai',
     baseUrl: 'https://api.deepseek.com/v1',
     models: ['deepseek-chat', 'deepseek-reasoner'],
-    hint: 'Clé sur platform.deepseek.com',
+    hint: 'Key at platform.deepseek.com',
   },
   {
     id: 'xai',
@@ -78,7 +78,7 @@ export const PROVIDER_PRESETS = [
     kind: 'openai',
     baseUrl: 'https://api.x.ai/v1',
     models: ['grok-4', 'grok-3-mini'],
-    hint: 'Clé sur console.x.ai',
+    hint: 'Key at console.x.ai',
   },
   {
     id: 'together',
@@ -86,7 +86,7 @@ export const PROVIDER_PRESETS = [
     kind: 'openai',
     baseUrl: 'https://api.together.xyz/v1',
     models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'Qwen/Qwen2.5-Coder-32B-Instruct'],
-    hint: 'Clé sur api.together.xyz',
+    hint: 'Key at api.together.xyz',
   },
   {
     id: 'ollama',
@@ -95,7 +95,7 @@ export const PROVIDER_PRESETS = [
     baseUrl: 'http://127.0.0.1:11434/v1',
     models: ['qwen2.5-coder:7b', 'llama3.2:3b', 'deepseek-coder-v2'],
     noKey: true,
-    hint: 'Lance `ollama serve` puis `ollama pull qwen2.5-coder:7b`. Aucune clé.',
+    hint: 'Run `ollama serve`, then `ollama pull qwen2.5-coder:7b`. No key needed.',
   },
   {
     id: 'lmstudio',
@@ -104,16 +104,16 @@ export const PROVIDER_PRESETS = [
     baseUrl: 'http://127.0.0.1:1234/v1',
     models: ['local-model'],
     noKey: true,
-    hint: 'Active le serveur local dans LM Studio (port 1234). Aucune clé.',
+    hint: 'Enable the local server in LM Studio (port 1234). No key needed.',
   },
   {
     id: 'vllm',
-    label: 'vLLM / llama.cpp / serveur custom',
+    label: 'vLLM / llama.cpp / custom server',
     kind: 'openai',
     baseUrl: 'http://127.0.0.1:8000/v1',
     models: ['default'],
     noKey: true,
-    hint: 'Tout serveur exposant /v1/chat/completions',
+    hint: 'Any server exposing /v1/chat/completions',
   },
 ];
 
@@ -174,7 +174,7 @@ function normalizeBase(baseUrl, preset) {
 
 function withTimeout(signal, ms = 180000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(new Error('Délai dépassé')), ms);
+  const timer = setTimeout(() => controller.abort(new Error('Timed out')), ms);
   const onAbort = () => controller.abort(signal?.reason);
   if (signal) {
     if (signal.aborted) controller.abort(signal.reason);
@@ -219,15 +219,15 @@ async function readError(response) {
     /* texte brut */
   }
   const hints = {
-    401: 'Clé d’API invalide ou absente.',
-    403: 'Accès refusé (clé, droits ou pays).',
-    404: 'Endpoint ou modèle introuvable — vérifie l’URL de base et le nom du modèle.',
-    429: 'Quota / limite de débit atteinte.',
-    500: 'Erreur interne du fournisseur.',
-    503: 'Service indisponible chez le fournisseur.',
+    401: 'API key is invalid or missing.',
+    403: 'Access denied (key, permissions, or country).',
+    404: 'Endpoint or model not found — check the base URL and model name.',
+    429: 'Quota or rate limit reached.',
+    500: 'Provider internal error.',
+    503: 'Provider service unavailable.',
   };
   const hint = hints[response.status] ? ` ${hints[response.status]}` : '';
-  return `Erreur ${response.status} du fournisseur.${hint}${detail ? ` — ${String(detail).slice(0, 400)}` : ''}`;
+  return `Provider error ${response.status}.${hint}${detail ? ` — ${String(detail).slice(0, 400)}` : ''}`;
 }
 
 function mergeRoles(messages) {
@@ -240,8 +240,8 @@ function mergeRoles(messages) {
     if (last && last.role === role) last.content += `\n\n${content}`;
     else out.push({ role, content });
   }
-  if (!out.length) out.push({ role: 'user', content: 'Bonjour' });
-  if (out[0].role !== 'user') out.unshift({ role: 'user', content: '(contexte)' });
+  if (!out.length) out.push({ role: 'user', content: 'Hello' });
+  if (out[0].role !== 'user') out.unshift({ role: 'user', content: '(context)' });
   return out;
 }
 
@@ -254,7 +254,7 @@ async function streamOpenAI({ preset, baseUrl, apiKey, model, temperature, messa
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   if (preset.id === 'openrouter') {
     headers['HTTP-Referer'] = 'http://localhost';
-    headers['X-Title'] = 'Supernova IA';
+    headers['X-Title'] = 'Supernova AI';
   }
 
   const requestBody = {
@@ -280,7 +280,7 @@ async function streamOpenAI({ preset, baseUrl, apiKey, model, temperature, messa
   } catch (error) {
     timeout.dispose();
     throw new Error(
-      `Connexion impossible à ${url}. ${error.message}. Vérifie l’URL de base (et que le serveur local tourne).`
+      `Unable to connect to ${url}. ${error.message}. Check the base URL (and that the local server is running).`
     );
   }
 
@@ -301,7 +301,7 @@ async function streamOpenAI({ preset, baseUrl, apiKey, model, temperature, messa
       } catch {
         continue;
       }
-      if (json.error) throw new Error(json.error.message || 'Erreur du fournisseur');
+      if (json.error) throw new Error(json.error.message || 'Provider error');
       const choice = json.choices?.[0];
       const delta = choice?.delta?.content ?? choice?.message?.content ?? '';
       const reasoning = choice?.delta?.reasoning_content ?? choice?.delta?.reasoning ?? '';
@@ -345,7 +345,7 @@ async function streamAnthropic({ preset, baseUrl, apiKey, model, temperature, me
     });
   } catch (error) {
     timeout.dispose();
-    throw new Error(`Connexion impossible à ${url}. ${error.message}`);
+    throw new Error(`Unable to connect to ${url}. ${error.message}`);
   }
   if (!response.ok) {
     timeout.dispose();
@@ -364,7 +364,7 @@ async function streamAnthropic({ preset, baseUrl, apiKey, model, temperature, me
       } catch {
         continue;
       }
-      if (json.type === 'error') throw new Error(json.error?.message || 'Erreur Anthropic');
+      if (json.type === 'error') throw new Error(json.error?.message || 'Anthropic error');
       if (json.type === 'content_block_delta' && json.delta?.text) {
         full += json.delta.text;
         onDelta?.(json.delta.text, 'text');
@@ -400,7 +400,7 @@ async function streamGoogle({ preset, baseUrl, apiKey, model, temperature, messa
     });
   } catch (error) {
     timeout.dispose();
-    throw new Error(`Connexion impossible à Google Gemini. ${error.message}`);
+    throw new Error(`Unable to connect to Google Gemini. ${error.message}`);
   }
   if (!response.ok) {
     timeout.dispose();
@@ -427,7 +427,7 @@ async function streamGoogle({ preset, baseUrl, apiKey, model, temperature, messa
         }
       }
       if (json.promptFeedback?.blockReason) {
-        throw new Error(`Requête bloquée par Gemini (${json.promptFeedback.blockReason})`);
+        throw new Error(`Request blocked by Gemini (${json.promptFeedback.blockReason})`);
       }
     }
   } finally {
@@ -441,7 +441,7 @@ async function streamGoogle({ preset, baseUrl, apiKey, model, temperature, messa
 export async function streamChat(params, handlers = {}) {
   const preset = getPreset(params.provider);
   const messages = (params.messages || []).map((m) => ({ role: m.role, content: m.content }));
-  const system = params.system || 'Tu es un assistant utile.';
+  const system = params.system || 'You are a helpful assistant.';
 
   if (preset.kind === 'local') {
     let full = '';
@@ -464,7 +464,7 @@ export async function streamChat(params, handlers = {}) {
 
   if (!params.apiKey && !preset.noKey) {
     throw new Error(
-      `Aucune clé d’API pour ${preset.label}. Ouvre Paramètres → Connexion IA pour l’ajouter, ou choisis Supernova Engine (local).`
+      `No API key for ${preset.label}. Open Settings → AI Connection to add one, or choose Supernova Engine (local).`
     );
   }
 
@@ -514,7 +514,7 @@ export async function listModels({ provider, baseUrl, apiKey }) {
     return list.map((m) => m.id || m.name).filter(Boolean);
   } catch (error) {
     const fallback = preset.models;
-    return fallback.concat([`Attention — ${error.message}`]).slice(0, 40);
+    return fallback.concat([`Warning — ${error.message}`]).slice(0, 40);
   }
 }
 
@@ -523,7 +523,7 @@ export async function enhancePrompt({ prompt, provider, model, apiKey, baseUrl, 
   if (preset.kind === 'local') return localUpgradePrompt(prompt);
 
   const system =
-    'Tu es un expert en spécifications produit et en ingénierie de prompt. Réécris la demande de l’utilisateur en un cahier des charges clair, structuré et actionnable pour un agent de code. Garde la même langue. Sois concret (écrans, composants, données, interactions, style, accessibilité, fichiers attendus). Réponds uniquement avec le prompt final, sans préambule.';
+    'You are an expert in product specifications and prompt engineering. Rewrite the user’s request into a clear, structured, actionable specification for a coding agent. Keep the same language. Be concrete (screens, components, data, interactions, style, accessibility, expected files). Respond only with the final prompt, without preamble.';
   const text = await streamChat(
     {
       provider,

@@ -56,16 +56,16 @@ export function initTerminal() {
       outputEl.innerHTML = '';
       append(
         state.project?.mode === 'cloud'
-          ? 'Terminal prêt (mode Cloud : les commandes tournent dans le stockage interne Supernova).\n'
-          : 'Terminal prêt. Les commandes s’exécutent à la racine du projet.\n',
+          ? 'Terminal ready (Cloud mode: commands run in Supernova internal storage).\n'
+          : 'Terminal ready. Commands run at the project root.\n',
         'sys'
       );
-      append('Astuce : « npm install », « npm run dev », « ls », « node -v ». Les commandes de l’agent apparaissent ici.\n\n', 'sys');
+      append('Tip: “npm install”, “npm run dev”, “ls”, “node -v”. Agent commands appear here.\n\n', 'sys');
     }
   });
 
   if (outputEl) {
-    append('Terminal prêt. Sélectionne un projet puis lance une commande.\n', 'sys');
+    append('Terminal ready. Select a project and run a command.\n', 'sys');
   }
 }
 
@@ -93,7 +93,7 @@ function appendRaw(text, stream) {
 
 function openSocket() {
   return new Promise((resolve, reject) => {
-    if (!state.project) return reject(new Error('Aucun projet'));
+    if (!state.project) return reject(new Error('No project'));
     const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
     const url = `${protocol}://${location.host}/ws/terminal?projectId=${encodeURIComponent(state.project.id)}`;
     let settled = false;
@@ -122,23 +122,23 @@ function openSocket() {
         append(`\n[code ${message.code}]\n`, message.code === 0 ? 'sys' : 'err');
         notifyTerminalTab();
       } else if (message.type === 'ready' && message.shellEnabled === false) {
-        append('Commande non exécutée : l’exécution shell est désactivée (SUPERNOVA_DISABLE_SHELL=1).\n', 'sys');
+        append('Command not run: shell execution is disabled (SUPERNOVA_DISABLE_SHELL=1).\n', 'sys');
       }
     };
 
     ws.onclose = () => {
       if (socket === ws) socket = null;
-      if (!settled) reject(new Error('Connexion au terminal impossible'));
+      if (!settled) reject(new Error('Unable to connect to terminal'));
     };
 
     ws.onerror = () => {
-      if (!settled) reject(new Error('Erreur de connexion au terminal'));
+      if (!settled) reject(new Error('Terminal connection error'));
     };
 
     setTimeout(() => {
       if (!settled) {
         try { ws.close(); } catch { /* ignore */ }
-        reject(new Error('Délai de connexion dépassé'));
+        reject(new Error('Connection timed out'));
       }
     }, 6000);
   });
@@ -157,8 +157,8 @@ async function runCommand(command) {
     if (!socket || socket.readyState !== WebSocket.OPEN) await openSocket();
     socket.send(JSON.stringify({ type: 'run', command }));
   } catch (error) {
-    append(`Impossible d’exécuter la commande : ${error.message}\n`, 'err');
-    toast('Terminal indisponible. Vérifie que le serveur Node tourne.', 'err');
+    append(`Unable to run command: ${error.message}\n`, 'err');
+    toast('Terminal unavailable. Check that the Node server is running.', 'err');
   }
 }
 

@@ -9,9 +9,11 @@ import * as store from './store.js';
 import * as userState from './state.js';
 import { PROVIDER_PRESETS, listModels, enhancePrompt } from './providers.js';
 import { runAgent } from './agent.js';
+import { runSuperAgent } from './super-agent.js';
 import { searchWeb } from './search.js';
 import { createZip } from './zip.js';
 import * as mcp from './mcp.js';
+import * as github from './github.js';
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -71,7 +73,7 @@ const CONSOLE_BRIDGE = `<script data-supernova-bridge>
     send('error', { text: event.message + ' (' + (event.filename || 'inline') + ':' + (event.lineno || 0) + ')' });
   });
   window.addEventListener('unhandledrejection', function (event) {
-    send('error', { text: 'Promise rejetée : ' + (event.reason && event.reason.message ? event.reason.message : String(event.reason)) });
+    send('error', { text: 'Promise rejected: ' + (event.reason && event.reason.message ? event.reason.message : String(event.reason)) });
   });
   send('ready', { url: location.pathname });
 })();
@@ -84,13 +86,13 @@ function asArray(value) {
 /* ── API système ─────────────────────────────────────────────────────────── */
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, version: '1.0.0', uptime: process.uptime() });
+  res.json({ ok: true, version: '1.0.1', uptime: process.uptime() });
 });
 
 app.get('/api/config', (req, res) => {
   res.json({
-    app: 'Supernova IA',
-    version: '1.0.0',
+    app: 'Supernova AI',
+    version: '1.0.1',
     shellEnabled: !SHELL_DISABLED,
     workspacesDir: store.WORKSPACES_DIR,
     dataDir: store.DATA_DIR,
@@ -224,7 +226,7 @@ app.get('/api/projects/:id/zip', (req, res, next) => {
     const project = store.requireProject(req.params.id);
     const files = store.listFiles(project.id, { withContent: true });
     if (!files.length) {
-      return res.status(400).json({ error: 'Projet vide : rien à exporter.' });
+      return res.status(400).json({ error: 'Empty project: nothing to export.' });
     }
     const zip = createZip(files.map((file) => ({ path: file.path, data: file.content })));
     const filename = `${store.slugify(project.name)}.zip`;
@@ -240,7 +242,7 @@ app.get('/api/projects/:id/zip', (req, res, next) => {
 app.post('/api/projects/:id/import', (req, res, next) => {
   try {
     const files = asArray(req.body?.files);
-    if (!files.length) return res.status(400).json({ error: 'Aucun fichier fourni.' });
+    if (!files.length) return res.status(400).json({ error: 'No files provided.' });
     let written = 0;
     for (const file of files) {
       if (!file?.path) continue;
@@ -253,16 +255,65 @@ app.post('/api/projects/:id/import', (req, res, next) => {
   }
 });
 
+/* ── GitHub ──────────────────────────────────────────────────────────────── */
+
+app.post('/api/github/connect', async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const user = await github.connect(req.body?.token);
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/github/repos', async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const repos = await github.listRepos(req.body?.token);
+    res.json({ repos });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/github/repos/create', async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const repo = await github.createRepo(req.body?.token, {
+      name: req.body?.name,
+      private: req.body?.private !== false,
+    });
+    res.status(201).json({ repo });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/github/push', async (req, res, next) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    const result = await github.pushProject(req.body?.token, {
+      projectId: req.body?.projectId,
+      repo: req.body?.repo,
+      message: req.body?.message,
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 /* ── Chat / agent ────────────────────────────────────────────────────────── */
 
 const runs = new Map();
 
 app.post('/api/chat', async (req, res) => {
-  const { projectId, messages, settings = {} } = req.body || {};
+  const { projectId, messages, settings = {}, superAgents = [] } = req.body || {};
 
-  if (!projectId) return res.status(400).json({ error: 'projectId manquant' });
-  if (!store.getProject(projectId)) return res.status(404).json({ error: 'Projet introuvable' });
-  if (!asArray(messages).length) return res.status(400).json({ error: 'messages manquants' });
+  if (!projectId) return res.status(400).json({ error: 'missing projectId' });
+  if (!store.getProject(projectId)) return res.status(404).json({ error: 'Project not found' });
+  if (!asArray(messages).length) return res.status(400).json({ error: 'missing messages' });
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -309,10 +360,13 @@ app.post('/api/chat', async (req, res) => {
   res.on('close', onClose);
 
   try {
-    const summary = await runAgent({
+    const agents = asArray(superAgents).slice(0, 6);
+    const run = agents.length >= 2 ? runSuperAgent : runAgent;
+    const summary = await run({
       projectId,
       messages,
       settings,
+      agents,
       emit,
       signal: controller.signal,
       requestApproval,
@@ -320,7 +374,7 @@ app.post('/api/chat', async (req, res) => {
     emit({ type: 'done', summary: String(summary || '').slice(0, 8000) });
   } catch (error) {
     if (error.name === 'AbortError') emit({ type: 'cancelled' });
-    else emit({ type: 'error', message: error.message || 'Erreur inconnue' });
+    else emit({ type: 'error', message: error.message || 'Unknown error' });
   } finally {
     runs.delete(runId);
     res.removeListener('close', onClose);
@@ -330,10 +384,10 @@ app.post('/api/chat', async (req, res) => {
 
 app.post('/api/agent/:runId/approve', (req, res) => {
   const run = runs.get(req.params.runId);
-  if (!run) return res.status(404).json({ error: 'Exécution inconnue ou terminée.' });
+  if (!run) return res.status(404).json({ error: 'Run unknown or finished.' });
   const { callId, approved } = req.body || {};
   const resolve = run.pending.get(callId);
-  if (!resolve) return res.status(404).json({ error: 'Demande inconnue.' });
+  if (!resolve) return res.status(404).json({ error: 'Unknown request.' });
   run.pending.delete(callId);
   resolve(Boolean(approved));
   res.json({ ok: true });
@@ -341,7 +395,7 @@ app.post('/api/agent/:runId/approve', (req, res) => {
 
 app.post('/api/agent/:runId/cancel', (req, res) => {
   const run = runs.get(req.params.runId);
-  if (!run) return res.status(404).json({ error: 'Exécution inconnue.' });
+  if (!run) return res.status(404).json({ error: 'Run not found.' });
   run.controller.abort();
   res.json({ ok: true });
 });
@@ -370,7 +424,7 @@ app.post('/api/search', async (req, res) => {
 app.post('/api/enhance', async (req, res) => {
   try {
     const { prompt, settings = {} } = req.body || {};
-    if (!String(prompt || '').trim()) return res.status(400).json({ error: 'Prompt vide' });
+    if (!String(prompt || '').trim()) return res.status(400).json({ error: 'Empty prompt' });
     const enhanced = await enhancePrompt({
       prompt,
       provider: settings.provider,
@@ -422,7 +476,7 @@ app.get('/api/mcp/tools', async (req, res) => {
 app.post('/api/mcp/test', async (req, res) => {
   try {
     const server = req.body?.server;
-    if (!server) return res.status(400).json({ error: 'Serveur manquant' });
+    if (!server) return res.status(400).json({ error: 'Missing server' });
     const result = await mcp.testServer({
       id: server.id || 'test',
       name: server.name || 'test',
@@ -443,7 +497,7 @@ app.post('/api/mcp/test', async (req, res) => {
 
 function serveProjectFile(req, res, relPath = '') {
   const project = store.getProject(req.params.id);
-  if (!project) return res.status(404).type('html').send('<h1>Projet introuvable</h1>');
+  if (!project) return res.status(404).type('html').send('<h1>Project not found</h1>');
 
   const rel = String(relPath || '').trim();
   if (!rel || rel.endsWith('/')) {
@@ -457,7 +511,7 @@ function serveProjectFile(req, res, relPath = '') {
     return res
       .status(404)
       .type('html')
-      .send(missingPage(project, 'Aucun fichier index.html : demande à Supernova de créer une page.'));
+      .send(missingPage(project, 'No index.html file: ask Supernova to create a page.'));
   }
 
   try {
@@ -467,7 +521,7 @@ function serveProjectFile(req, res, relPath = '') {
       const nested = `${rel}/index.html`;
       return sendPreview(res, req, project, nested, store.readFile(project.id, nested));
     } catch {
-      return res.status(404).type('html').send(missingPage(project, `Fichier introuvable : ${rel}`));
+      return res.status(404).type('html').send(missingPage(project, `File not found: ${rel}`));
     }
   }
 }
@@ -497,13 +551,13 @@ function missingPage(project, message) {
     .listFiles(project.id)
     .map((file) => `<li>${file.path}</li>`)
     .join('');
-  return `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Aperçu — ${project.name}</title>
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Preview — ${project.name}</title>
 <style>body{font-family:system-ui;background:#0a0c16;color:#e6eaf7;display:grid;place-items:center;min-height:100vh;margin:0;padding:24px}
 main{max-width:560px;background:#111527;border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:28px}
 h1{font-size:1.3rem;margin:0 0 8px}p{color:#98a3c2;font-size:14px}ul{color:#98a3c2;font-size:13px;max-height:220px;overflow:auto}
 code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:6px}</style></head>
-<body><main><h1>Aperçu en attente</h1><p>${message}</p>
-<p>Les fichiers du projet :</p><ul>${files || '<li><em>projet vide</em></li>'}</ul></main></body></html>`;
+<body><main><h1>Preview pending</h1><p>${message}</p>
+<p>Project files:</p><ul>${files || '<li><em>empty project</em></li>'}</ul></main></body></html>`;
 }
 
 /* ── Front statique ──────────────────────────────────────────────────────── */
@@ -511,15 +565,15 @@ code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:6px}</style>
 app.use(express.static(path.join(store.APP_ROOT, 'public'), { index: 'index.html', extensions: ['html'] }));
 
 app.use((req, res) => {
-  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Route inconnue' });
-  res.status(404).type('html').send('<h1>404</h1><p><a href="/">Retour à Supernova IA</a></p>');
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Unknown route' });
+  res.status(404).type('html').send('<h1>404</h1><p><a href="/">Back to Supernova AI</a></p>');
 });
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
   const status = error.status || 500;
   if (status >= 500) console.error('[supernova]', error);
-  res.status(status).json({ error: error.message || 'Erreur serveur' });
+  res.status(status).json({ error: error.message || 'Server error' });
 });
 
 /* ── Serveur + terminal WebSocket ────────────────────────────────────────── */
@@ -558,7 +612,7 @@ wss.on('connection', (socket, req) => {
 
     if (message.type !== 'run') return;
     if (SHELL_DISABLED) {
-      send({ type: 'output', stream: 'stderr', text: 'Exécution shell désactivée (SUPERNOVA_DISABLE_SHELL=1).\n' });
+      send({ type: 'output', stream: 'stderr', text: 'Shell execution disabled (SUPERNOVA_DISABLE_SHELL=1).\n' });
       send({ type: 'exit', code: 1 });
       return;
     }
@@ -587,7 +641,7 @@ wss.on('connection', (socket, req) => {
 
     const timer = setTimeout(() => {
       child?.kill('SIGKILL');
-      send({ type: 'output', stream: 'stderr', text: '\n[Supernova] Commande interrompue après 5 minutes.\n' });
+      send({ type: 'output', stream: 'stderr', text: '\n[Supernova] Command interrupted after 5 minutes.\n' });
     }, 300000);
 
     child.stdout.on('data', (data) => send({ type: 'output', stream: 'stdout', text: data.toString() }));
@@ -608,13 +662,13 @@ wss.on('connection', (socket, req) => {
 server.listen(PORT, HOST, () => {
   const display = HOST === '0.0.0.0' ? 'localhost' : HOST;
   console.log('');
-  console.log('  ✦ Supernova IA');
+  console.log('  ✦ Supernova AI');
   console.log(`  → http://${display}:${PORT}`);
-  console.log(`  projets PC : ${store.WORKSPACES_DIR}`);
-  console.log(`  cloud      : ${store.CLOUD_DIR}`);
-  console.log(`  données    : ${store.DATA_DIR}`);
-  console.log(`  sauvegarde : ${userState.STATE_FILE}`);
-  console.log(`  shell      : ${SHELL_DISABLED ? 'désactivé' : 'activé'}`);
+  console.log(`  PC projects : ${store.WORKSPACES_DIR}`);
+  console.log(`  cloud       : ${store.CLOUD_DIR}`);
+  console.log(`  data        : ${store.DATA_DIR}`);
+  console.log(`  state       : ${userState.STATE_FILE}`);
+  console.log(`  shell       : ${SHELL_DISABLED ? 'disabled' : 'enabled'}`);
   console.log('');
 });
 

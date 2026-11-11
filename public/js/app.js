@@ -6,6 +6,8 @@ import { initWorkspace, loadProject, updateModeUI, setView } from './workspace.j
 import { initTerminal } from './terminal.js';
 import { initSettings } from './settings.js';
 import { initThreads } from './threads.js';
+import { initSuperAgents } from './superagents.js';
+import { initGithub } from './github.js';
 
 let splitterDragging = false;
 
@@ -18,7 +20,7 @@ async function boot() {
   try {
     state.config = await api.config();
   } catch (error) {
-    toast(`Serveur injoignable : ${error.message}`, 'err', 8000);
+    toast(`Server unreachable: ${error.message}`, 'err', 8000);
     return;
   }
 
@@ -27,6 +29,8 @@ async function boot() {
   initChat();
   initSettings();
   initThreads();
+  initSuperAgents();
+  initGithub();
 
   await refreshProjects();
   await openInitialProject();
@@ -42,14 +46,14 @@ async function refreshProjects() {
     renderProjectMenu();
     return state.projects;
   } catch (error) {
-    toast(`Liste des projets indisponible : ${error.message}`, 'err');
+    toast(`Projects list unavailable: ${error.message}`, 'err');
     return [];
   }
 }
 
 function projectFolderName(project) {
-  if (!project?.rootDir) return 'dossier local';
-  return String(project.rootDir).split(/[\\/]/).filter(Boolean).pop() || 'dossier local';
+  if (!project?.rootDir) return 'local folder';
+  return String(project.rootDir).split(/[\\/]/).filter(Boolean).pop() || 'local folder';
 }
 
 function renderProjectMenu() {
@@ -57,7 +61,7 @@ function renderProjectMenu() {
   if (!list) return;
   list.innerHTML = '';
   if (!state.projects.length) {
-    list.append(h('p', { class: 'project-menu-empty', text: 'Aucun projet pour l’instant.' }));
+    list.append(h('p', { class: 'project-menu-empty', text: 'No projects yet.' }));
   }
   for (const project of state.projects) {
     const active = state.project?.id === project.id;
@@ -67,7 +71,7 @@ function renderProjectMenu() {
       role: 'option',
       'aria-selected': String(active),
       dataset: { projectId: project.id },
-      title: project.mode === 'cloud' ? `${project.name} · projet Cloud` : `${project.name} · ${project.rootDir || ''}`,
+      title: project.mode === 'cloud' ? `${project.name} · Cloud project` : `${project.name} · ${project.rootDir || ''}`,
     });
     item.innerHTML = `
       <span class="project-menu-icon" aria-hidden="true">${icon(project.mode === 'cloud' ? 'cloud' : 'folder', 'sm')}</span>
@@ -75,7 +79,7 @@ function renderProjectMenu() {
       <svg class="i sm project-menu-check" aria-hidden="true"><use href="#i-check"></use></svg>`;
     item.querySelector('strong').textContent = project.name;
     item.querySelector('small').textContent = project.mode === 'cloud'
-      ? 'Cloud · stockage interne + ZIP'
+      ? 'Cloud · internal storage + ZIP'
       : `PC · ${projectFolderName(project)}`;
     item.addEventListener('click', () => {
       closeProjectMenu();
@@ -92,7 +96,7 @@ function syncProjectTrigger() {
   if (value) {
     value.textContent = state.project
       ? `${state.project.mode === 'cloud' ? 'Cloud' : 'PC'} · ${state.project.name}`
-      : 'Aucun projet';
+      : 'No project';
   }
   if (use) use.setAttribute('href', state.project?.mode === 'cloud' ? '#i-cloud' : '#i-folder');
 }
@@ -129,7 +133,7 @@ async function openInitialProject() {
     await switchProject(target.id);
   } else {
     await createProject({
-      name: 'Mon premier projet',
+      name: 'My first project',
       mode: state.settings.mode === 'cloud' ? 'cloud' : 'pc',
     });
   }
@@ -137,7 +141,7 @@ async function openInitialProject() {
 
 async function switchProject(id, threadId = null) {
   if (!id) return;
-  if (state.streaming && !confirm('Une génération est en cours. Changer de projet va l’interrompre. Continuer ?')) return;
+  if (state.streaming && !confirm('A generation is running. Switching projects will stop it. Continue?')) return;
   const thread = threadId
     ? setActiveThread(id, threadId) || ensureThread(id)
     : ensureThread(id);
@@ -166,14 +170,14 @@ async function createProject({ name, mode, rootDir }) {
     updateZipState();
     toast(
       result.project.mode === 'cloud'
-        ? `Projet « ${result.project.name} » créé dans le Cloud Supernova (export ZIP).`
-        : `Projet « ${result.project.name} » créé dans « ${projectFolderName(result.project)} ».`,
+        ? `Project “${result.project.name}” created in Supernova Cloud (ZIP export).`
+        : `Project “${result.project.name}” created in “${projectFolderName(result.project)}”.`,
       'ok',
       4200
     );
     return result.project;
   } catch (error) {
-    toast(`Création impossible : ${error.message}`, 'err', 6000);
+    toast(`Cannot create project: ${error.message}`, 'err', 6000);
     return null;
   }
 }
@@ -223,7 +227,7 @@ function bindChrome() {
   const themeBtn = $('#themeBtn');
   const syncThemeButton = () => {
     const light = document.documentElement.dataset.theme === 'light';
-    const label = light ? 'Passer au thème sombre' : 'Passer au thème clair';
+    const label = light ? 'Switch to dark theme' : 'Switch to light theme';
     themeBtn.title = label;
     themeBtn.setAttribute('aria-label', label);
     themeBtn.setAttribute('aria-pressed', String(light));
@@ -309,7 +313,7 @@ function bindChrome() {
     updateModeUI();
     if (project) {
       const pill = $('#enginePill');
-      if (pill) pill.textContent = project.mode === 'cloud' ? 'Projet cloud · ZIP' : 'Projet PC';
+      if (pill) pill.textContent = project.mode === 'cloud' ? 'Cloud project · ZIP' : 'PC project';
     }
   });
 
@@ -339,8 +343,8 @@ function switchMode(mode) {
   updateModeUI();
   toast(
     mode === 'cloud'
-      ? 'Mode Cloud — les nouveaux projets vivent dans le stockage interne Supernova et s’exportent en ZIP.'
-      : 'Mode PC — les nouveaux projets créent un vrai dossier sur la machine.',
+      ? 'Cloud mode — new projects live in Supernova internal storage and export as ZIP.'
+      : 'PC mode — new projects create a real folder on your machine.',
     'info',
     4200
   );
@@ -351,28 +355,28 @@ function updateZipState() {
   const hasFiles = (state.files?.length || 0) > 0;
   button.disabled = !state.project || !hasFiles;
   button.title = !state.project
-    ? 'Aucun projet'
+    ? 'No project'
     : hasFiles
-      ? 'Télécharger le projet en ZIP'
-      : 'Le projet est vide';
+      ? 'Download project as ZIP'
+      : 'The project is empty';
 }
 
 function downloadZip() {
-  if (!state.project) return toast('Aucun projet ouvert.', 'warn');
+  if (!state.project) return toast('No project open.', 'warn');
   const link = document.createElement('a');
   link.href = `/api/projects/${state.project.id}/zip`;
   link.download = '';
   document.body.append(link);
   link.click();
   link.remove();
-  toast(state.project.mode === 'cloud' ? 'ZIP en préparation (projet Cloud).' : 'ZIP en préparation.', 'ok', 2400);
+  toast(state.project.mode === 'cloud' ? 'Preparing ZIP (Cloud project).' : 'Preparing ZIP.', 'ok', 2400);
 }
 
 /* ── Démarrage ──────────────────────────────────────────────────────────── */
 
 boot().catch((error) => {
   console.error(error);
-  toast(`Démarrage impossible : ${error.message}`, 'err', 9000);
+  toast(`Startup failed: ${error.message}`, 'err', 9000);
 });
 
 // Exporté pour la console du navigateur (debug manuel)
