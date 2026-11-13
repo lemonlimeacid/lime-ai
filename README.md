@@ -216,6 +216,18 @@ son serveur embarqué sur ce port pour que `http://localhost:3000` partage la m�
 > macOS, et Flatpak demande `flatpak-builder` avec ses runtimes. Les configurations et icônes
 > sont fournies pour ces trois cibles.
 
+### Téléchargements
+
+| Plateforme | Format | Téléchargement |
+| --- | --- | --- |
+| **Windows x64** | Installateur NSIS | [Lime.AI.Setup.1.0.3.exe](https://github.com/lemonlimeacid/lime-ai/releases/download/v1.0.3/Lime.AI.Setup.1.0.3.exe) |
+| **Windows x64** | Portable | [Lime.AI.1.0.3.exe](https://github.com/lemonlimeacid/lime-ai/releases/download/v1.0.3/Lime.AI.1.0.3.exe) |
+| **macOS universel** | DMG (Intel + Apple Silicon) | [Lime.AI-1.0.3-universal.dmg](https://github.com/lemonlimeacid/lime-ai/releases/download/v1.0.3/Lime.AI-1.0.3-universal.dmg) |
+| **macOS universel** | ZIP (Intel + Apple Silicon) | [Lime.AI-1.0.3-universal-mac.zip](https://github.com/lemonlimeacid/lime-ai/releases/download/v1.0.3/Lime.AI-1.0.3-universal-mac.zip) |
+| **Linux x64** | AppImage | [Lime.AI-1.0.3.AppImage](https://github.com/lemonlimeacid/lime-ai/releases/download/v1.0.3/Lime.AI-1.0.3.AppImage) |
+
+Les builds sont **non signés** : Windows SmartScreen ou macOS Gatekeeper peuvent demander une confirmation au premier lancement.
+
 ---
 
 ## Structure
