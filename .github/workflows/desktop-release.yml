@@ -80,3 +80,20 @@ jobs:
             release/*.dmg
             release/*.zip
           fail_on_unmatched_files: true
+
+  verify:
+    name: Verify SHA-256 assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [windows, macos]
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release-assets
+          gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir release-assets --clobber
+
+      - name: Verify checksums
+        working-directory: release-assets
+        run: sha256sum -c SHA256SUMS
