@@ -230,7 +230,7 @@ Les builds sont **non signés** : Windows SmartScreen ou macOS Gatekeeper peuven
 
 ### Checksums SHA-256
 
-Vérifier les fichiers avec `sha256sum -c SHA256SUMS` (Linux/macOS) ou `Get-FileHash` (Windows). Le fichier [`SHA256SUMS`](https://github.com/lemonlimeacid/lime-ai/blob/main/SHA256SUMS) est aussi attaché à la [release](https://github.com/lemonlimeacid/lime-ai/releases/tag/v1.0.3).
+Vérifier les fichiers avec `sha256sum -c SHA256SUMS` (Linux/macOS) ou `Get-FileHash` (Windows). Le fichier [`SHA256SUMS`](https://github.com/lemonlimeacid/lime-ai/blob/main/SHA256SUMS) est aussi attaché à la [release](https://github.com/lemonlimeacid/lime-ai/releases/tag/v1.0.3). Le workflow de release régénère `SHA256SUMS` après chaque rebuild des binaires.
 
 ```text
 485edbc952184762753398d85530fcab0ddc0874e55073bb60fe799c39b320be  Lime.AI-1.0.3-universal-mac.zip

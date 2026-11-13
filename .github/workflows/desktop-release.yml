@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: desktop-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
   windows:
     name: Windows x64
@@ -18,6 +22,7 @@ jobs:
     timeout-minutes: 30
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,12 +44,8 @@ jobs:
         run: dir release
 
       - name: Upload Windows assets to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ inputs.tag }}
-          files: |
-            release/*.exe
-          fail_on_unmatched_files: true
+        shell: bash
+        run: gh release upload "${{ inputs.tag }}" release/*.exe --clobber --repo "${{ github.repository }}"
 
   macos:
     name: macOS universal
@@ -52,6 +53,7 @@ jobs:
     timeout-minutes: 30
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -73,23 +75,105 @@ jobs:
         run: ls -lh release
 
       - name: Upload macOS assets to release
-        uses: softprops/action-gh-release@v2
+        run: gh release upload "${{ inputs.tag }}" release/*.dmg release/*.zip --clobber --repo "${{ github.repository }}"
+
+  checksums:
+    name: Refresh SHA-256 checksums
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [windows, macos]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
         with:
-          tag_name: ${{ inputs.tag }}
-          files: |
-            release/*.dmg
-            release/*.zip
-          fail_on_unmatched_files: true
+          ref: main
+          fetch-depth: 0
+
+      - name: Download current release assets
+        run: |
+          mkdir -p release-assets
+          gh release download "$TAG" --repo "$REPO" --dir release-assets --clobber
+          rm -f release-assets/SHA256SUMS
+          count=$(find release-assets -maxdepth 1 -type f | wc -l)
+          if [ "$count" -ne 5 ]; then
+            echo "Expected 5 build assets, found $count"
+            find release-assets -maxdepth 1 -type f -printf '%f\n'
+            exit 1
+          fi
+
+      - name: Regenerate SHA256SUMS from published assets
+        run: |
+          cd release-assets
+          sha256sum * | sort -k2 > ../SHA256SUMS
+          cd ..
+          cat SHA256SUMS
+
+      - name: Upload refreshed checksum file
+        run: gh release upload "$TAG" SHA256SUMS --clobber --repo "$REPO"
+
+      - name: Update README checksum block
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('README.md')
+          text = path.read_text()
+          marker = '### Checksums SHA-256'
+          start = text.index('```text\n', text.index(marker)) + len('```text\n')
+          end = text.index('\n```', start)
+          sums = Path('SHA256SUMS').read_text().rstrip()
+          path.write_text(text[:start] + sums + text[end:])
+          PY
+
+      - name: Update release notes
+        run: |
+          gh release view "$TAG" --repo "$REPO" --json body --jq '.body' > release-body.md
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          body = Path('release-body.md').read_text().rstrip()
+          marker = '\n## SHA-256'
+          if marker in body:
+              body = body.split(marker, 1)[0].rstrip()
+          sums = Path('SHA256SUMS').read_text().rstrip()
+          repo = os.environ['REPO']
+          tag = os.environ['TAG']
+          extra = (
+              '\n\n## SHA-256\n\n'
+              f'The complete list is also attached as [SHA256SUMS](https://github.com/{repo}/releases/download/{tag}/SHA256SUMS).\n\n'
+              f'```text\n{sums}\n```\n'
+          )
+          Path('release-body.md').write_text(body + extra)
+          PY
+          gh release edit "$TAG" --repo "$REPO" --notes-file release-body.md
+          rm -f release-body.md
+
+      - name: Commit refreshed checksums
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add SHA256SUMS README.md
+          if git diff --cached --quiet; then
+            echo "Checksums are already up to date."
+          else
+            git commit -m "Refresh SHA-256 checksums"
+            git push origin HEAD:main
+          fi
 
   verify:
     name: Verify SHA-256 assets
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [windows, macos]
+    needs: [checksums]
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p release-assets
           gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir release-assets --clobber
