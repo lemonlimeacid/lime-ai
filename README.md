@@ -13,6 +13,9 @@ npm start
 
 Aucune clé n'est nécessaire pour démarrer : le **Lime Engine** intégré fonctionne hors ligne.
 
+> **Lime AI 1.0.3** — 14 thèmes à dégradés, menus déroulants entièrement thémés,
+aperçu remis à zéro à chaque nouvelle conversation, agent local multi-API et MCP.
+
 ---
 
 ## Ce qu'il sait faire
@@ -21,12 +24,12 @@ Aucune clé n'est nécessaire pour démarrer : le **Lime Engine** intégré fonc
 | --- | --- |
 | **Compatibilité API** | Toute API « OpenAI compatible » (`/v1/chat/completions`) : OpenAI, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Ollama, LM Studio, vLLM, llama.cpp… + **Anthropic** et **Google Gemini** en natif. URL de base, modèle et clé modifiables. |
 | **MCP** | Client Model Context Protocol écrit sans dépendance : transport `stdio` et `http` (Streamable HTTP), `initialize`, `tools/list`, `tools/call`, boucle de continuation avec les résultats. |
-| **Prévisualisation** | Bascule **Aperçu live / Code**. Le code contient 4 onglets : **Fichiers** (arborescence + éditeur), **Terminal**, **Console** (logs/erreurs de l'app) et **Journal** des actions. |
+| **Prévisualisation** | Bascule **Aperçu live / Code**. Le code contient 4 onglets : **Fichiers** (arborescence + éditeur), **Terminal**, **Console** (logs/erreurs de l'app) et **Journal** des actions. L'aperçu est vidé à chaque nouvelle conversation et se recharge au premier fichier écrit. |
 | **PC / Cloud** | **PC** : vrai dossier sur la machine, écriture disque. **Cloud** : dossier interne à Lime AI, export **ZIP** en un clic. |
 | **Vocal** | Dictée via la Web Speech API + synthèse vocale des réponses (par réponse ou automatique). |
 | **Moteur local** | 5 générateurs de projets complets (vitrine, to-do, calculatrice, jeu serpent, météo), retouches ciblées (palette, thème, titre, finitions), base de connaissances technique, recherche web (DuckDuckGo + Wikipédia). |
 | **Agent** | Écriture de fichiers complets, suppression, commandes shell avec approbation, outils MCP, prompt système personnalisable, amélioration de prompt. |
-| **Confort** | Historique par projet, régénération, copie, arrêt de génération, raccourcis clavier, responsive, thème sombre. |
+| **Confort** | Historique par projet, régénération, copie, arrêt de génération, raccourcis clavier, responsive, 14 thèmes à dégradés, profondeur 3D et menus déroulants thémés. |
 
 ---
 
@@ -45,7 +48,8 @@ Aucune clé n'est nécessaire pour démarrer : le **Lime Engine** intégré fonc
 └───────────────────────────┴──────────────────────────────────┘
 ```
 
-- **Aperçu live** : iframe servie par le serveur, rafraîchie à chaque fichier écrit ; bascule bureau/mobile ; URL personnalisable (utile pour un serveur de dev Vite/Next).
+- **Aperçu live** : iframe servie par le serveur, rafraîchie à chaque fichier écrit ; bascule bureau/mobile ; URL personnalisable (utile pour un serveur de dev Vite/Next). Une nouvelle conversation repart d'un aperçu vide.
+- **Thèmes** : galerie de 14 palettes avec aperçus dégradés, paires clair/sombre et profondeur 3D optionnelle.
 - **Code** : éditeur avec sauvegarde (`Ctrl+S`), création/suppression de fichiers.
 - **Terminal** : vrai shell (`bash -lc`) à la racine du projet, historique ↑/↓. Les commandes de l'agent y apparaissent aussi.
 - **Console** : les `console.log` et erreurs de l'app prévisualisée remontent ici.
@@ -204,6 +208,7 @@ public/
   js/terminal.js  terminal WebSocket
   js/settings.js  paramètres + MCP
   js/select.js    menus déroulants thémés
+  js/themes.js    registre des thèmes, paires et aperçus dégradés
   js/app.js       amorçage, projets, raccourcis
 desktop/
   main.cjs        enveloppe Electron (serveur embarqué + fenêtre)
