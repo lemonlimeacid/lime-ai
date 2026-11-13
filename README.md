@@ -55,6 +55,20 @@ aperçu remis à zéro à chaque nouvelle conversation, agent local multi-API et
 - **Console** : les `console.log` et erreurs de l'app prévisualisée remontent ici.
 - **Journal** : chaque fichier écrit, commande lancée et outil MCP appelé, horodaté.
 
+### Aperçus
+
+**Galerie de thèmes** — 14 palettes avec aperçus dégradés, paires clair/sombre et profondeur 3D optionnelle.
+
+![Galerie de thèmes Lime AI](docs/screenshots/themes.png)
+
+**Menus déroulants** — menus entièrement thémés, y compris les selects ajoutés dynamiquement.
+
+![Menus déroulants personnalisés Lime AI](docs/screenshots/dropdowns.png)
+
+**Aperçu live** — conversation, aperçu de l’application et espace de travail dans une seule vue.
+
+![Aperçu live Lime AI](docs/screenshots/preview.png)
+
 ---
 
 ## Connexion d'un modèle
