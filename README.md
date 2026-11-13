@@ -1,5 +1,8 @@
 # ✦ Lime AI
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-9be64a?style=flat-square)](LICENSE)
+[![Release: 1.0.3](https://img.shields.io/badge/release-1.0.3-9be64a?style=flat-square)](https://github.com/lemonlimeacid/lime-ai/releases/tag/v1.0.3)
+
 Agent de code **local** qui mélange la boucle d'action d'un **Claude Code** (fichiers, shell, outils MCP)
 et l'expérience d'un **bolt.new** (aperçu live, code, terminal, console, journal).
 
