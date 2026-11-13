@@ -69,6 +69,14 @@ aperçu remis à zéro à chaque nouvelle conversation, agent local multi-API et
 
 ![Aperçu live Lime AI](docs/screenshots/preview.png)
 
+**Super-agents** — un superviseur et plusieurs modèles qui travaillent en parallèle.
+
+![Super-agents Lime AI](docs/screenshots/superagents.png)
+
+**Serveurs MCP** — connexion de serveurs stdio ou HTTP et découverte de leurs outils.
+
+![Serveurs MCP Lime AI](docs/screenshots/mcp.png)
+
 ---
 
 ## Connexion d'un modèle
