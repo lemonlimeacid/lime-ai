@@ -228,6 +228,18 @@ son serveur embarqué sur ce port pour que `http://localhost:3000` partage la m�
 
 Les builds sont **non signés** : Windows SmartScreen ou macOS Gatekeeper peuvent demander une confirmation au premier lancement.
 
+### Checksums SHA-256
+
+Vérifier les fichiers avec `sha256sum -c SHA256SUMS` (Linux/macOS) ou `Get-FileHash` (Windows). Le fichier [`SHA256SUMS`](https://github.com/lemonlimeacid/lime-ai/blob/main/SHA256SUMS) est aussi attaché à la [release](https://github.com/lemonlimeacid/lime-ai/releases/tag/v1.0.3).
+
+```text
+485edbc952184762753398d85530fcab0ddc0874e55073bb60fe799c39b320be  Lime.AI-1.0.3-universal-mac.zip
+28ca1790c8a168df34f1508179d0a0a496cf5a0cb1294fb30de832aae929caf5  Lime.AI-1.0.3-universal.dmg
+869cb8729619d206459d1323f01b87402755edee018d0bc9bf7e048af1489bfe  Lime.AI-1.0.3.AppImage
+cdf1aa472540b4cffd5fe0df3591c1c3cde34656adff5cc15b7ae79b42144fea  Lime.AI.1.0.3.exe
+00179db35f2635cf45f2f0a269fdfca2c50ee8620878a2036e1e9109120863f1  Lime.AI.Setup.1.0.3.exe
+```
+
 ---
 
 ## Structure
