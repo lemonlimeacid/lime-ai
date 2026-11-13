@@ -216,6 +216,8 @@ son serveur embarqué sur ce port pour que `http://localhost:3000` partage la m�
 > macOS, et Flatpak demande `flatpak-builder` avec ses runtimes. Les configurations et icônes
 > sont fournies pour ces trois cibles.
 
+Un tag `v*` déclenche automatiquement les builds Windows/macOS et la régénération des checksums. Si aucune release n'existe encore pour le tag, le workflow crée une release en brouillon puis la publie après vérification.
+
 ### Téléchargements
 
 | Plateforme | Format | Téléchargement |

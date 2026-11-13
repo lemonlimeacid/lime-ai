@@ -7,19 +7,49 @@ on:
         description: Existing GitHub release tag
         required: true
         default: v1.0.3
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
 
 concurrency:
-  group: desktop-release-${{ inputs.tag }}
+  group: desktop-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      created: ${{ steps.meta.outputs.created }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Resolve tag and ensure release exists
+        id: meta
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --draft \
+              --title "Lime AI ${TAG#v}" \
+              --generate-notes
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          fi
+
   windows:
     name: Windows x64
     runs-on: windows-latest
     timeout-minutes: 30
+    needs: prepare
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       GH_TOKEN: ${{ github.token }}
@@ -45,12 +75,13 @@ jobs:
 
       - name: Upload Windows assets to release
         shell: bash
-        run: gh release upload "${{ inputs.tag }}" release/*.exe --clobber --repo "${{ github.repository }}"
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" release/*.exe --clobber --repo "${{ github.repository }}"
 
   macos:
     name: macOS universal
     runs-on: macos-latest
     timeout-minutes: 30
+    needs: prepare
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       GH_TOKEN: ${{ github.token }}
@@ -75,16 +106,16 @@ jobs:
         run: ls -lh release
 
       - name: Upload macOS assets to release
-        run: gh release upload "${{ inputs.tag }}" release/*.dmg release/*.zip --clobber --repo "${{ github.repository }}"
+        run: gh release upload "${{ needs.prepare.outputs.tag }}" release/*.dmg release/*.zip --clobber --repo "${{ github.repository }}"
 
   checksums:
     name: Refresh SHA-256 checksums
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [windows, macos]
+    needs: [prepare, windows, macos]
     env:
       GH_TOKEN: ${{ github.token }}
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ needs.prepare.outputs.tag }}
       REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
@@ -169,15 +200,27 @@ jobs:
     name: Verify SHA-256 assets
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [checksums]
+    needs: [prepare, checksums]
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Download release assets
         run: |
           mkdir -p release-assets
-          gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir release-assets --clobber
+          gh release download "${{ needs.prepare.outputs.tag }}" --repo "${{ github.repository }}" --dir release-assets --clobber
 
       - name: Verify checksums
         working-directory: release-assets
         run: sha256sum -c SHA256SUMS
+
+  publish:
+    name: Publish release
+    if: needs.prepare.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [prepare, verify]
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Publish draft release
+        run: gh release edit "${{ needs.prepare.outputs.tag }}" --repo "${{ github.repository }}" --draft=false
