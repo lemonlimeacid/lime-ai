@@ -16,6 +16,12 @@ Aucune clé n'est nécessaire pour démarrer : le **Lime Engine** intégré fonc
 > **Lime AI 1.0.3** — 14 thèmes à dégradés, menus déroulants entièrement thémés,
 aperçu remis à zéro à chaque nouvelle conversation, agent local multi-API et MCP.
 
+## Démo
+
+![Démo du workflow Lime AI](docs/screenshots/demo.gif)
+
+Démo enregistrée avec le Lime Engine local, sans clé API : nouveau projet → prompt → génération des fichiers → vue Code → aperçu live. [Ouvrir le GIF en grand](docs/screenshots/demo.gif).
+
 ---
 
 ## Ce qu'il sait faire
