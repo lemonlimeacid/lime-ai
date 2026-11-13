@@ -3,6 +3,7 @@
   "version": "1.0.3",
   "private": true,
   "author": "Lime AI",
+  "license": "MIT",
   "type": "module",
   "description": "Lime AI — agent de code local (Claude Code + bolt.new), multi-API, MCP, aperçu live, mode PC/Cloud, vocal, desktop Electron.",
   "main": "desktop/main.cjs",

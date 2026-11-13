@@ -251,3 +251,7 @@ LIME_DISABLE_SHELL=1     # coupe l'exécution de commandes
 | `Ctrl` + `S` | Enregistrer le fichier ouvert |
 | `Échap` | Arrêter la génération |
 | `Ctrl` + `K` | Fermer les fenêtres |
+
+## Licence
+
+MIT © 2026 Lime AI. Voir [LICENSE](LICENSE).
