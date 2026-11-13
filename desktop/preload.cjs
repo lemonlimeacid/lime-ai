@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('supernovaDesktop', {
+contextBridge.exposeInMainWorld('limeDesktop', {
   chooseProjectFolder: (currentPath) =>
-    ipcRenderer.invoke('supernova:choose-project-folder', currentPath),
+    ipcRenderer.invoke('lime:choose-project-folder', currentPath),
 });

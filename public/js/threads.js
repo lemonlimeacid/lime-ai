@@ -1,4 +1,4 @@
-/* Supernova IA — volet des conversations et création rapide */
+/* Lime AI — volet des conversations et création rapide */
 
 import {
   $, $$, h, state, bus, toast, timeAgo, icon, saveUiPreferences,
@@ -167,6 +167,7 @@ function createItem(kind) {
   state.threadId = thread.id;
   state.chat = [];
   bus.emit('thread:changed', thread);
+  bus.emit('preview:reset');
   bus.emit('threads:changed');
   if (isNarrow()) setCollapsed(true);
   setTimeout(() => $('#prompt')?.focus(), 40);
@@ -192,7 +193,7 @@ export function initThreads() {
 
   let stored = null;
   try {
-    stored = localStorage.getItem('supernova.threadsCollapsed');
+    stored = localStorage.getItem('lime.threadsCollapsed');
   } catch (error) {
     stored = null;
   }

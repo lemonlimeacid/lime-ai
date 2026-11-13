@@ -17,7 +17,7 @@ import * as github from './github.js';
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '127.0.0.1';
-const SHELL_DISABLED = process.env.SUPERNOVA_DISABLE_SHELL === '1';
+const SHELL_DISABLED = process.env.LIME_DISABLE_SHELL === '1';
 
 const app = express();
 app.disable('x-powered-by');
@@ -53,10 +53,10 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
-const CONSOLE_BRIDGE = `<script data-supernova-bridge>
+const CONSOLE_BRIDGE = `<script data-lime-bridge>
 (function () {
   function send(type, payload) {
-    try { parent.postMessage({ __supernova: type, payload: payload }, '*'); } catch (error) {}
+    try { parent.postMessage({ __lime: type, payload: payload }, '*'); } catch (error) {}
   }
   ['log', 'info', 'warn', 'error', 'debug'].forEach(function (level) {
     var original = console[level];
@@ -86,13 +86,13 @@ function asArray(value) {
 /* ── API système ─────────────────────────────────────────────────────────── */
 
 app.get('/api/health', (req, res) => {
-  res.json({ ok: true, version: '1.0.2', uptime: process.uptime() });
+  res.json({ ok: true, version: '1.0.3', uptime: process.uptime() });
 });
 
 app.get('/api/config', (req, res) => {
   res.json({
-    app: 'Supernova AI',
-    version: '1.0.2',
+    app: 'Lime AI',
+    version: '1.0.3',
     shellEnabled: !SHELL_DISABLED,
     workspacesDir: store.WORKSPACES_DIR,
     dataDir: store.DATA_DIR,
@@ -513,7 +513,7 @@ function serveProjectFile(req, res, relPath = '') {
     return res
       .status(404)
       .type('html')
-      .send(missingPage(project, 'No index.html file: ask Supernova to create a page.'));
+      .send(missingPage(project, 'No index.html file: ask Lime to create a page.'));
   }
 
   try {
@@ -568,13 +568,13 @@ app.use(express.static(path.join(store.APP_ROOT, 'public'), { index: 'index.html
 
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Unknown route' });
-  res.status(404).type('html').send('<h1>404</h1><p><a href="/">Back to Supernova AI</a></p>');
+  res.status(404).type('html').send('<h1>404</h1><p><a href="/">Back to Lime AI</a></p>');
 });
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
   const status = error.status || 500;
-  if (status >= 500) console.error('[supernova]', error);
+  if (status >= 500) console.error('[lime]', error);
   res.status(status).json({ error: error.message || 'Server error' });
 });
 
@@ -614,7 +614,7 @@ wss.on('connection', (socket, req) => {
 
     if (message.type !== 'run') return;
     if (SHELL_DISABLED) {
-      send({ type: 'output', stream: 'stderr', text: 'Shell execution disabled (SUPERNOVA_DISABLE_SHELL=1).\n' });
+      send({ type: 'output', stream: 'stderr', text: 'Shell execution disabled (LIME_DISABLE_SHELL=1).\n' });
       send({ type: 'exit', code: 1 });
       return;
     }
@@ -643,7 +643,7 @@ wss.on('connection', (socket, req) => {
 
     const timer = setTimeout(() => {
       child?.kill('SIGKILL');
-      send({ type: 'output', stream: 'stderr', text: '\n[Supernova] Command interrupted after 5 minutes.\n' });
+      send({ type: 'output', stream: 'stderr', text: '\n[Lime] Command interrupted after 5 minutes.\n' });
     }, 300000);
 
     child.stdout.on('data', (data) => send({ type: 'output', stream: 'stdout', text: data.toString() }));
@@ -664,7 +664,7 @@ wss.on('connection', (socket, req) => {
 server.listen(PORT, HOST, () => {
   const display = HOST === '0.0.0.0' ? 'localhost' : HOST;
   console.log('');
-  console.log('  ✦ Supernova AI');
+  console.log('  ✦ Lime AI');
   console.log(`  → http://${display}:${PORT}`);
   console.log(`  PC projects : ${store.WORKSPACES_DIR}`);
   console.log(`  cloud       : ${store.CLOUD_DIR}`);

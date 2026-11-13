@@ -1,20 +1,10 @@
-/* Supernova IA — paramètres, fournisseurs, serveurs MCP */
+/* Lime AI — paramètres, fournisseurs, serveurs MCP */
 
 import { $, $$, h, api, state, bus, toast, saveSettings, icon, clearSettingsPersistence } from './core.js';
+import { normalizeTheme, applyTheme, applyDepth, THEME_PRESETS } from './themes.js';
 import { applyPriceBadge } from './pricing.js';
 
 let mcpServers = [];
-
-function applyThemeStyle(value) {
-  if (value === 'glass' || value === 'minimal') document.documentElement.dataset.style = value;
-  else delete document.documentElement.dataset.style;
-}
-
-const THEME_LABELS = {
-  default: 'Default theme',
-  glass: 'Liquid glass theme',
-  minimal: 'Minimalist theme',
-};
 
 const MCP_PRESETS = {
   filesystem: {
@@ -56,97 +46,96 @@ export function initSettings() {
     providerSelect.append(h('option', { value: preset.id }, preset.label));
   }
 
-  // Style de thème : menu personnalisé (le select natif ne s'ouvrait pas dans la boîte de dialogue).
-  const themeSelect = $('#themeSelect');
-  const themeTrigger = $('#themeSelectBtn');
-  const themeMenu = $('#themeSelectMenu');
-  const themeValueEl = $('#themeSelectValue');
-  const themeSwatch = $('#themeSelectSwatch');
-  const themeOptions = $$('[data-theme-style]', themeMenu);
+  // Galerie de thèmes : chaque carte montre un mini aperçu du dégradé.
+  const gallery = $('#themeGallery');
 
-  const renderThemePicker = (value) => {
-    const style = value === 'glass' || value === 'minimal' ? value : 'default';
-    if (themeValueEl) themeValueEl.textContent = THEME_LABELS[style];
-    if (themeSwatch) themeSwatch.dataset.style = style;
-    for (const option of themeOptions) {
-      option.setAttribute('aria-selected', String(option.dataset.themeStyle === style));
+  const syncThemeGallery = (value) => {
+    if (!gallery) return;
+    const theme = normalizeTheme(value);
+    for (const card of $$('.theme-card', gallery)) {
+      const active = card.dataset.themePreset === theme.id;
+      card.classList.toggle('active', active);
+      card.setAttribute('aria-checked', String(active));
+      card.tabIndex = active ? 0 : -1;
     }
   };
 
-  const closeThemeMenu = ({ focus = false } = {}) => {
-    if (!themeMenu || themeMenu.hidden) return;
-    themeMenu.hidden = true;
-    themeTrigger?.setAttribute('aria-expanded', 'false');
-    if (focus) themeTrigger?.focus();
+  const selectTheme = (id) => {
+    const theme = applyTheme(id);
+    syncThemeGallery(theme.id);
+    saveSettings({ theme: theme.id });
+    toast(`${theme.label} enabled.`, 'ok', 2400);
   };
 
-  const openThemeMenu = () => {
-    if (!themeMenu) return;
-    themeMenu.hidden = false;
-    themeTrigger?.setAttribute('aria-expanded', 'true');
-    const selected = themeOptions.find((option) => option.getAttribute('aria-selected') === 'true') || themeOptions[0];
-    selected?.focus();
+  const renderThemeGallery = () => {
+    if (!gallery) return;
+    gallery.innerHTML = '';
+    for (const theme of THEME_PRESETS) {
+      const card = h('button', {
+        type: 'button',
+        class: 'theme-card',
+        role: 'radio',
+        'aria-checked': 'false',
+        'aria-label': `${theme.label} — ${theme.description}`,
+        title: theme.description,
+        dataset: { themePreset: theme.id },
+        style: [
+          `--card-gradient:${theme.preview.gradient}`,
+          `--card-panel:${theme.preview.panel}`,
+          `--card-line:${theme.preview.line}`,
+          `--card-ink:${theme.preview.ink}`,
+          `--card-dot:${theme.preview.dot}`,
+        ].join(';'),
+      });
+      card.innerHTML = `
+        <span class="theme-card-art${theme.preview.dotted ? ' is-dotted' : ''}" aria-hidden="true">
+          <span class="theme-card-mini">
+            <span class="theme-card-side"><i></i><i></i><i></i><i></i></span>
+            <span class="theme-card-main">
+              <span class="theme-card-tabs"><i></i><i></i></span>
+              <span class="theme-card-copy"><i></i><i></i><i class="short"></i></span>
+              <span class="theme-card-dot"></span>
+            </span>
+          </span>
+        </span>
+        <span class="theme-card-foot">
+          <span class="theme-card-name">${theme.label}</span>
+          ${theme.default ? '<span class="theme-card-default">Default</span>' : ''}
+          <svg class="i xs theme-card-check" aria-hidden="true"><use href="#i-check"></use></svg>
+        </span>`;
+      card.addEventListener('click', () => selectTheme(theme.id));
+      gallery.append(card);
+    }
+    syncThemeGallery(state.settings.theme);
   };
 
-  applyThemeStyle(state.settings.themeStyle);
-  renderThemePicker(state.settings.themeStyle);
-
-  themeTrigger?.addEventListener('click', (event) => {
-    event.stopPropagation();
-    if (themeMenu.hidden) openThemeMenu();
-    else closeThemeMenu({ focus: true });
-  });
-
-  for (const option of themeOptions) {
-    option.addEventListener('click', () => {
-      const value = ['glass', 'minimal'].includes(option.dataset.themeStyle) ? option.dataset.themeStyle : 'default';
-      applyThemeStyle(value);
-      renderThemePicker(value);
-      saveSettings({ themeStyle: value });
-      closeThemeMenu({ focus: true });
-      toast(
-        value === 'glass' ? 'Liquid glass enabled.' : value === 'minimal' ? 'Minimalist mode enabled.' : 'Default theme enabled.',
-        'ok',
-        2400
-      );
-    });
-  }
-
-  themeMenu?.addEventListener('keydown', (event) => {
-    const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+  gallery?.addEventListener('keydown', (event) => {
+    const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
     if (!keys.includes(event.key)) return;
+    const cards = $$('.theme-card', gallery);
+    const current = event.target.closest?.('.theme-card');
+    const index = cards.indexOf(current);
+    if (index < 0) return;
     event.preventDefault();
-    const index = themeOptions.indexOf(document.activeElement);
     let next = index;
     if (event.key === 'Home') next = 0;
-    else if (event.key === 'End') next = themeOptions.length - 1;
-    else if (event.key === 'ArrowDown') next = (index + 1) % themeOptions.length;
-    else next = (index - 1 + themeOptions.length) % themeOptions.length;
-    themeOptions[next]?.focus();
+    else if (event.key === 'End') next = cards.length - 1;
+    else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (index + 1) % cards.length;
+    else next = (index - 1 + cards.length) % cards.length;
+    const target = cards[next];
+    target.focus();
+    selectTheme(target.dataset.themePreset);
   });
 
-  document.addEventListener('pointerdown', (event) => {
-    if (!themeSelect || !themeMenu || themeMenu.hidden) return;
-    if (themeSelect.contains(event.target)) return;
-    closeThemeMenu();
-  });
-
-  // Capture : passe avant le raccourci global Échap qui ferme les dialogues.
-  document.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.key !== 'Escape' || !themeMenu || themeMenu.hidden) return;
-      event.stopPropagation();
-      closeThemeMenu({ focus: true });
-    },
-    true
-  );
-
-  $('#settingsDialog')?.addEventListener('close', () => closeThemeMenu());
+  applyTheme(state.settings.theme);
+  applyDepth(state.settings.threeD !== false);
+  renderThemeGallery();
+  syncThemeGallery(state.settings.theme);
 
   bus.on('settings:changed', (settings) => {
-    applyThemeStyle(settings.themeStyle);
-    renderThemePicker(settings.themeStyle);
+    applyTheme(settings.theme);
+    applyDepth(settings.threeD !== false);
+    syncThemeGallery(settings.theme);
   });
 
   // Navigation interne
@@ -187,6 +176,7 @@ export function initSettings() {
   bindCheckbox('#setAutoApply', 'autoApply');
   bindCheckbox('#setAutoContinue', 'autoContinue');
   bindCheckbox('#setAutoSpeak', 'autoSpeak');
+  bindCheckbox('#set3d', 'threeD');
 
   const shellPolicy = $('#setShellPolicy');
   shellPolicy.addEventListener('change', () => saveSettings({ shellPolicy: shellPolicy.value }));
@@ -197,7 +187,9 @@ export function initSettings() {
   $('#resetSettingsBtn').addEventListener('click', async () => {
     if (!confirm('Reset all settings (including the API key)?')) return;
     await clearSettingsPersistence();
-    localStorage.removeItem('supernova.settings');
+    localStorage.removeItem('lime.settings');
+    localStorage.removeItem('lime.theme');
+    localStorage.removeItem('lime.threeD');
     location.reload();
   });
 
@@ -262,6 +254,9 @@ function syncFields() {
   $('#setSystemPrompt').value = settings.systemPrompt || '';
   $('#setVoiceLang').value = settings.voiceLang || 'en-US';
   $('#setAutoSpeak').checked = Boolean(settings.autoSpeak);
+  $('#set3d').checked = settings.threeD !== false;
+  applyTheme(settings.theme);
+  applyDepth(settings.threeD !== false);
 
   const preset = (state.config.providers || []).find((item) => item.id === settings.provider);
   if (preset) {
@@ -275,7 +270,7 @@ function syncFields() {
   if (dirs) {
     dirs.innerHTML = `
       <div>PC projects: <code>${escapeText(state.config.workspacesDir || '—')}</code></div>
-      <div>Cloud: Supernova internal storage (ZIP export)</div>
+      <div>Cloud: Lime internal storage (ZIP export)</div>
       <div>Backups: <code>${escapeText(state.config.stateDir || '—')}</code></div>
       <div>Data: <code>${escapeText(state.config.dataDir || '—')}</code></div>
       <div>Accepted formats: ${escapeText((state.config.formats || []).join(' · '))}</div>`;
@@ -394,7 +389,7 @@ function renderMcpCards() {
     const top = h('div', { class: 'mcp-top' });
     const nameInput = h('input', { type: 'text', value: server.name, placeholder: 'server name' });
     nameInput.addEventListener('input', () => { server.name = nameInput.value; });
-    const transportSelect = h('select', {}, [
+    const transportSelect = h('select', { 'aria-label': 'Transport' }, [
       h('option', { value: 'stdio' }, 'stdio'),
       h('option', { value: 'http' }, 'http'),
     ]);

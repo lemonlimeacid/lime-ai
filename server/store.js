@@ -6,17 +6,17 @@ import { fileURLToPath } from 'node:url';
 /**
  * Stockage des projets.
  *  - mode "pc"    : un vrai dossier est créé sur la machine (rootDir).
- *  - mode "cloud" : un dossier interne à Supernova IA (data/cloud/<nom>-<id>),
+ *  - mode "cloud" : un dossier interne à Lime AI (data/cloud/<nom>-<id>),
  *                   invisible dans l'interface et exportable en ZIP.
  * Les anciens projets "web" (virtual.json) sont migrés vers data/cloud au démarrage.
  */
 
 export const APP_ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
-export const DATA_DIR = process.env.SUPERNOVA_DATA
-  ? path.resolve(process.env.SUPERNOVA_DATA)
+export const DATA_DIR = process.env.LIME_DATA
+  ? path.resolve(process.env.LIME_DATA)
   : path.join(APP_ROOT, 'data');
-export const WORKSPACES_DIR = process.env.SUPERNOVA_WORKSPACES
-  ? path.resolve(process.env.SUPERNOVA_WORKSPACES)
+export const WORKSPACES_DIR = process.env.LIME_WORKSPACES
+  ? path.resolve(process.env.LIME_WORKSPACES)
   : path.join(APP_ROOT, 'workspaces');
 export const CLOUD_DIR = path.join(DATA_DIR, 'cloud');
 

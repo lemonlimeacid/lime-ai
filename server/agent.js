@@ -121,7 +121,7 @@ function cleanContent(content) {
 
 export function buildSystemPrompt({ project, settings = {}, tools = [] }) {
   const mode = project?.mode === 'cloud'
-    ? 'CLOUD (Supernova AI internal storage, ZIP export, folder hidden from the user)'
+    ? 'CLOUD (Lime AI internal storage, ZIP export, folder hidden from the user)'
     : 'PC (direct writes to a folder on the machine)';
   const outline = project ? store.projectOutline(project.id, 160) : '(no project)';
   const toolList = tools.length
@@ -135,14 +135,14 @@ export function buildSystemPrompt({ project, settings = {}, tools = [] }) {
 
   const custom = String(settings.systemPrompt || '').trim();
 
-  return `You are **Supernova AI**, an autonomous software development agent working in a local project.
+  return `You are **Lime AI**, an autonomous software development agent working in a local project.
 You combine the rigor of a coding agent (project reading, file writing, command execution, MCP tools) with the speed of an app generator with a live preview.
 
 Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 Response language: ${settings.language || 'English'}
 Project mode: ${mode}
 Project name: ${project?.name || '—'}
-Folder / workspace: ${project?.mode === 'cloud' ? '(Supernova internal cloud)' : project?.rootDir || '—'}
+Folder / workspace: ${project?.mode === 'cloud' ? '(Lime internal cloud)' : project?.rootDir || '—'}
 
 Current file tree:
 ${outline}
@@ -179,12 +179,12 @@ ${custom ? `\n## Additional user instructions\n${custom}` : ''}`;
 
 /* ── Exécution shell ─────────────────────────────────────────────────────── */
 
-const SHELL_DISABLED = process.env.SUPERNOVA_DISABLE_SHELL === '1';
+const SHELL_DISABLED = process.env.LIME_DISABLE_SHELL === '1';
 
 function runShell({ command, cwd, emit, signal, timeout = 180000 }) {
   return new Promise((resolve) => {
     if (SHELL_DISABLED) {
-      emit({ type: 'shell_end', code: 1, output: 'Shell execution disabled (SUPERNOVA_DISABLE_SHELL=1).' });
+      emit({ type: 'shell_end', code: 1, output: 'Shell execution disabled (LIME_DISABLE_SHELL=1).' });
       resolve({ code: 1, output: 'shell disabled' });
       return;
     }
@@ -214,7 +214,7 @@ function runShell({ command, cwd, emit, signal, timeout = 180000 }) {
     };
 
     const timer = setTimeout(() => {
-      output += '\n[Supernova] Timed out, command interrupted.';
+      output += '\n[Lime] Timed out, command interrupted.';
       child.kill('SIGKILL');
       finish(124);
     }, timeout);

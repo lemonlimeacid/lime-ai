@@ -50,7 +50,7 @@ async function gh(token, endpoint, { method = 'GET', body } = {}) {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${authToken}`,
         'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'Supernova-AI',
+        'User-Agent': 'Lime-AI',
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -149,7 +149,7 @@ export async function createRepo(token, { name, private: isPrivate = true } = {}
       name: repoName,
       private: Boolean(isPrivate),
       auto_init: true,
-      description: 'Project created with Supernova AI',
+      description: 'Project created with Lime AI',
     },
   });
   return normalizeRepo(repo);
@@ -220,7 +220,7 @@ export async function pushProject(token, { projectId, repo: repoName, message } 
   const commit = await gh(token, `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/git/commits`, {
     method: 'POST',
     body: {
-      message: String(message || `${project.name} — Supernova AI update`).slice(0, 500),
+      message: String(message || `${project.name} — Lime AI update`).slice(0, 500),
       tree: tree.sha,
       ...(parentSha ? { parents: [parentSha] } : {}),
     },

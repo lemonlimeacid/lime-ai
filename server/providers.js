@@ -10,10 +10,10 @@ import { runLocalEngine, localUpgradePrompt } from './local-engine.js';
 export const PROVIDER_PRESETS = [
   {
     id: 'local',
-    label: 'Supernova Engine (local, no key)',
+    label: 'Lime Engine (local, no key)',
     kind: 'local',
     baseUrl: '',
-    models: ['supernova-mini'],
+    models: ['lime-mini'],
     hint: 'Built-in engine: codes small projects, chats, and searches the web. No key required.',
   },
   {
@@ -137,7 +137,7 @@ const PROVIDER_REASONING = {
 };
 
 const MODEL_REASONING = {
-  'supernova-mini': ['low', 'medium'],
+  'lime-mini': ['low', 'medium'],
   'o4-mini': ['low', 'medium', 'high'],
   'claude-haiku-4-5': ['low', 'medium'],
   'claude-sonnet-4-5': ['low', 'medium', 'high'],
@@ -272,7 +272,7 @@ async function streamOpenAI({ preset, baseUrl, apiKey, model, temperature, messa
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
   if (preset.id === 'openrouter') {
     headers['HTTP-Referer'] = 'http://localhost';
-    headers['X-Title'] = 'Supernova AI';
+    headers['X-Title'] = 'Lime AI';
   }
 
   const requestBody = {
@@ -492,7 +492,7 @@ export async function streamChat(params, handlers = {}) {
 
   if (!params.apiKey && !preset.noKey) {
     throw new Error(
-      `No API key for ${preset.label}. Open Settings → AI Connection to add one, or choose Supernova Engine (local).`
+      `No API key for ${preset.label}. Open Settings → AI Connection to add one, or choose Lime Engine (local).`
     );
   }
 
@@ -517,7 +517,7 @@ export async function streamChat(params, handlers = {}) {
 
 export async function listModels({ provider, baseUrl, apiKey }) {
   const preset = getPreset(provider);
-  if (preset.kind === 'local') return ['supernova-mini'];
+  if (preset.kind === 'local') return ['lime-mini'];
 
   try {
     if (preset.kind === 'google') {

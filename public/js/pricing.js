@@ -1,7 +1,7 @@
-/* Supernova AI — approximate model prices, Free/Paid badges and spend tracking. */
+/* Lime AI — approximate model prices, Free/Paid badges and spend tracking. */
 import { $, bus } from './core.js';
 
-const USAGE_KEY = 'supernova.usage.v1';
+const USAGE_KEY = 'lime.usage.v1';
 const FREE_PROVIDERS = new Set(['local', 'ollama', 'lmstudio', 'vllm']);
 
 // USD per 1M tokens: [input, output]. These are approximate public list prices.

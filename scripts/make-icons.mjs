@@ -67,37 +67,43 @@ function sample(x, y) {
   const ny = y * 2 - 1;
   if (!inRoundedBox(nx, ny, 0.94, 0.24)) return [0, 0, 0, 0];
 
-  let color = [20, 20, 19, 255];
-
-  // Halo interne discret.
-  const glow = Math.max(0, 1 - Math.hypot(nx, ny) / 1.05);
-  color = [
-    Math.round(20 + 16 * glow),
-    Math.round(20 + 9 * glow),
-    Math.round(19 + 5 * glow),
+  // Tuile vert-noir avec un léger halo.
+  const glow = Math.max(0, 1 - Math.hypot(nx, ny) / 1.15);
+  let color = [
+    Math.round(10 + 6 * glow),
+    Math.round(15 + 8 * glow),
+    Math.round(8 + 4 * glow),
     255,
   ];
 
-  // Anneau incliné.
-  const angle = (24 * Math.PI) / 180;
-  const rx = nx * Math.cos(angle) + ny * Math.sin(angle);
-  const ry = -nx * Math.sin(angle) + ny * Math.cos(angle);
-  const distance = Math.hypot(rx / 0.74, ry / 0.34);
-  const ring = Math.abs(distance - 1) < 0.075;
-  if (ring) color = [224, 122, 82, 255];
+  const radius = Math.hypot(nx, ny);
+  if (radius < 0.78) {
+    if (radius > 0.67) {
+      // Écorce.
+      color = [91, 156, 24, 255];
+    } else if (radius > 0.62) {
+      color = [62, 124, 8, 255];
+    } else {
+      // Pulpe claire.
+      const pulp = Math.max(0, 1 - radius / 0.68);
+      color = [
+        Math.round(205 + 35 * pulp),
+        Math.round(255 - 10 * pulp),
+        Math.round(170 + 40 * pulp),
+        255,
+      ];
 
-  // Petit arc supérieur, plus doux.
-  const arc = Math.abs(distance - 0.99) < 0.035 && ry < -0.04;
-  if (arc) color = [244, 164, 130, 255];
+      // Huit quartiers.
+      const angle = Math.atan2(ny, nx);
+      if (radius > 0.2 && radius < 0.61 && Math.abs(Math.sin(angle * 4)) < 0.075) {
+        color = [120, 173, 34, 255];
+      }
+      if (radius < 0.2) color = [120, 173, 34, 255];
+      if (radius < 0.12) color = [234, 255, 199, 255];
 
-  // Coeur.
-  if (Math.hypot(nx, ny) < 0.125) color = [224, 122, 82, 255];
-
-  // Éclats diagonaux.
-  const spark = (px, py) => Math.abs(px - py) < 0.025 && Math.hypot(px, py) > 0.55 && Math.hypot(px, py) < 0.86;
-  if (spark(nx, ny)) color = [224, 122, 82, 255];
-  if (Math.abs(nx + ny) < 0.018 && Math.hypot(nx, ny) > 0.58 && Math.hypot(nx, ny) < 0.8) {
-    color = [224, 122, 82, 170];
+      // Petit reflet.
+      if (Math.hypot(nx + 0.25, ny + 0.25) < 0.055) color = [255, 255, 240, 255];
+    }
   }
 
   return color;

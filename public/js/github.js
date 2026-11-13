@@ -1,4 +1,4 @@
-/* Supernova IA — connexion GitHub et publication du projet courant */
+/* Lime AI — connexion GitHub et publication du projet courant */
 
 import { $, state, bus, toast, api, saveSettings } from './core.js';
 
@@ -244,7 +244,7 @@ async function publishProject() {
       token: state.settings.githubToken,
       projectId: state.project.id,
       repo,
-      message: `Supernova AI — ${state.project.name}`,
+      message: `Lime AI — ${state.project.name}`,
     });
     setStatus(
       repoStatus,

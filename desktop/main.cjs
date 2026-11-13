@@ -1,4 +1,4 @@
-/* Supernova IA — enveloppe desktop Electron.
+/* Lime AI — enveloppe desktop Electron.
  * Lance le serveur Node embarqué sur un port libre, stocke les données dans
  * le dossier utilisateur de l'application, puis ouvre l'interface.
  */
@@ -60,7 +60,7 @@ function waitForServer(port, timeoutMs = 25000) {
     };
     const retry = () => {
       if (Date.now() - started > timeoutMs) {
-        return reject(new Error('The Supernova server is not responding.'));
+        return reject(new Error('The Lime server is not responding.'));
       }
       setTimeout(attempt, 220);
     };
@@ -78,7 +78,7 @@ function probeServer(port) {
         response.on('data', (chunk) => { body += chunk; });
         response.on('end', () => {
           try {
-            resolve(response.statusCode === 200 && JSON.parse(body).app === 'Supernova AI');
+            resolve(response.statusCode === 200 && JSON.parse(body).app === 'Lime AI');
           } catch {
             resolve(false);
           }
@@ -92,7 +92,7 @@ function probeServer(port) {
 
 /** Si le site tourne déjà, on s'y connecte : les deux interfaces partagent la même sauvegarde. */
 async function useExistingSite() {
-  const sitePort = Number(process.env.SUPERNOVA_SITE_PORT || 3000);
+  const sitePort = Number(process.env.LIME_SITE_PORT || 3000);
   if (!Number.isInteger(sitePort) || sitePort <= 0) return false;
   if (!(await probeServer(sitePort))) return false;
   serverPort = sitePort;
@@ -102,17 +102,17 @@ async function useExistingSite() {
 
 async function startServer() {
   const userData = app.getPath('userData');
-  const dataDir = process.env.SUPERNOVA_DATA
-    ? path.resolve(process.env.SUPERNOVA_DATA)
+  const dataDir = process.env.LIME_DATA
+    ? path.resolve(process.env.LIME_DATA)
     : path.join(userData, 'data');
-  const workspacesDir = process.env.SUPERNOVA_WORKSPACES
-    ? path.resolve(process.env.SUPERNOVA_WORKSPACES)
+  const workspacesDir = process.env.LIME_WORKSPACES
+    ? path.resolve(process.env.LIME_WORKSPACES)
     : path.join(userData, 'workspaces');
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(workspacesDir, { recursive: true });
 
   serverPort = await pickPort();
-  const logPath = path.join(userData, 'supernova-server.log');
+  const logPath = path.join(userData, 'lime-server.log');
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
   logStream.write(`\n--- ${new Date().toISOString()} · port ${serverPort} ---\n`);
 
@@ -125,9 +125,9 @@ async function startServer() {
     ...process.env,
     PORT: String(serverPort),
     HOST: '127.0.0.1',
-    SUPERNOVA_DATA: dataDir,
-    SUPERNOVA_WORKSPACES: workspacesDir,
-    SUPERNOVA_DESKTOP: '1',
+    LIME_DATA: dataDir,
+    LIME_WORKSPACES: workspacesDir,
+    LIME_DESKTOP: '1',
     ELECTRON_RUN_AS_NODE: '1',
   };
 
@@ -155,7 +155,7 @@ async function startServer() {
     logStream.write(`[desktop] server stopped (${code ?? signal ?? 'unknown'})\n`);
     if (!quitting) {
       dialog.showErrorBox(
-        'Supernova AI',
+        'Lime AI',
         `The local server stopped (${code ?? signal ?? 'unknown'}).\n\nCheck the log:\n${logPath}`
       );
       app.quit();
@@ -180,7 +180,7 @@ function isLocalUrl(url) {
   }
 }
 
-ipcMain.handle('supernova:choose-project-folder', async (event, requestedPath) => {
+ipcMain.handle('lime:choose-project-folder', async (event, requestedPath) => {
   const senderUrl = event.senderFrame?.url || event.sender.getURL();
   if (!isLocalUrl(senderUrl)) return null;
 
@@ -207,7 +207,7 @@ function createWindow() {
     minHeight: 640,
     show: false,
     backgroundColor: '#0e0e0d',
-    title: 'Supernova AI',
+    title: 'Lime AI',
     autoHideMenuBar: true,
     icon: path.join(APP_ROOT, 'build', 'icon.png'),
     webPreferences: {
@@ -282,7 +282,7 @@ if (!hasLock) {
       if (!(await useExistingSite())) await startServer();
       createWindow();
     } catch (error) {
-      dialog.showErrorBox('Supernova AI', error.message);
+      dialog.showErrorBox('Lime AI', error.message);
       app.quit();
     }
 

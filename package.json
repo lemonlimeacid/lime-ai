@@ -1,10 +1,10 @@
 {
-  "name": "supernova-ia",
-  "version": "1.0.2",
+  "name": "lime-ai",
+  "version": "1.0.3",
   "private": true,
-  "author": "Supernova IA",
+  "author": "Lime AI",
   "type": "module",
-  "description": "Supernova IA — agent de code local (Claude Code + bolt.new), multi-API, MCP, aperçu live, mode PC/Cloud, vocal, desktop Electron.",
+  "description": "Lime AI — agent de code local (Claude Code + bolt.new), multi-API, MCP, aperçu live, mode PC/Cloud, vocal, desktop Electron.",
   "main": "desktop/main.cjs",
   "scripts": {
     "start": "node server/index.js",
@@ -29,9 +29,9 @@
     "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "ia.supernova.desktop",
-    "productName": "Supernova IA",
-    "copyright": "Supernova IA",
+    "appId": "ai.lime.desktop",
+    "productName": "Lime AI",
+    "copyright": "Lime AI",
     "asar": false,
     "compression": "normal",
     "directories": {
@@ -61,7 +61,7 @@
       "category": "Development",
       "icon": "build/icon.png",
       "synopsis": "Agent de code local avec aperçu live",
-      "description": "Supernova IA — agent de code local, MCP, aperçu live et mode PC/Cloud."
+      "description": "Lime AI — agent de code local, MCP, aperçu live et mode PC/Cloud."
     },
     "win": {
       "target": [

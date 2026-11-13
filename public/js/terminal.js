@@ -1,4 +1,4 @@
-/* Supernova IA — terminal (WebSocket) */
+/* Lime AI — terminal (WebSocket) */
 
 import { $, state, bus, toast } from './core.js';
 import { notifyTerminalTab } from './workspace.js';
@@ -56,7 +56,7 @@ export function initTerminal() {
       outputEl.innerHTML = '';
       append(
         state.project?.mode === 'cloud'
-          ? 'Terminal ready (Cloud mode: commands run in Supernova internal storage).\n'
+          ? 'Terminal ready (Cloud mode: commands run in Lime internal storage).\n'
           : 'Terminal ready. Commands run at the project root.\n',
         'sys'
       );
@@ -122,7 +122,7 @@ function openSocket() {
         append(`\n[code ${message.code}]\n`, message.code === 0 ? 'sys' : 'err');
         notifyTerminalTab();
       } else if (message.type === 'ready' && message.shellEnabled === false) {
-        append('Command not run: shell execution is disabled (SUPERNOVA_DISABLE_SHELL=1).\n', 'sys');
+        append('Command not run: shell execution is disabled (LIME_DISABLE_SHELL=1).\n', 'sys');
       }
     };
 

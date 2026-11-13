@@ -1,4 +1,4 @@
-# ✦ Supernova IA
+# ✦ Lime AI
 
 Agent de code **local** qui mélange la boucle d'action d'un **Claude Code** (fichiers, shell, outils MCP)
 et l'expérience d'un **bolt.new** (aperçu live, code, terminal, console, journal).
@@ -11,7 +11,7 @@ npm start
 # → http://localhost:3000
 ```
 
-Aucune clé n'est nécessaire pour démarrer : le **Supernova Engine** intégré fonctionne hors ligne.
+Aucune clé n'est nécessaire pour démarrer : le **Lime Engine** intégré fonctionne hors ligne.
 
 ---
 
@@ -22,7 +22,7 @@ Aucune clé n'est nécessaire pour démarrer : le **Supernova Engine** intégré
 | **Compatibilité API** | Toute API « OpenAI compatible » (`/v1/chat/completions`) : OpenAI, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Ollama, LM Studio, vLLM, llama.cpp… + **Anthropic** et **Google Gemini** en natif. URL de base, modèle et clé modifiables. |
 | **MCP** | Client Model Context Protocol écrit sans dépendance : transport `stdio` et `http` (Streamable HTTP), `initialize`, `tools/list`, `tools/call`, boucle de continuation avec les résultats. |
 | **Prévisualisation** | Bascule **Aperçu live / Code**. Le code contient 4 onglets : **Fichiers** (arborescence + éditeur), **Terminal**, **Console** (logs/erreurs de l'app) et **Journal** des actions. |
-| **PC / Cloud** | **PC** : vrai dossier sur la machine, écriture disque. **Cloud** : dossier interne à Supernova IA, export **ZIP** en un clic. |
+| **PC / Cloud** | **PC** : vrai dossier sur la machine, écriture disque. **Cloud** : dossier interne à Lime AI, export **ZIP** en un clic. |
 | **Vocal** | Dictée via la Web Speech API + synthèse vocale des réponses (par réponse ou automatique). |
 | **Moteur local** | 5 générateurs de projets complets (vitrine, to-do, calculatrice, jeu serpent, météo), retouches ciblées (palette, thème, titre, finitions), base de connaissances technique, recherche web (DuckDuckGo + Wikipédia). |
 | **Agent** | Écriture de fichiers complets, suppression, commandes shell avec approbation, outils MCP, prompt système personnalisable, amélioration de prompt. |
@@ -34,7 +34,7 @@ Aucune clé n'est nécessaire pour démarrer : le **Supernova Engine** intégré
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ ✦ Supernova IA   [projet ▾] [PC | Cloud]             [ZIP] ⚙ ? │
+│ ✦ Lime AI   [projet ▾] [PC | Cloud]             [ZIP] ⚙ ? │
 ├───────────────────────────┬──────────────────────────────────┤
 │ Conversation              │  [▶ Aperçu live] [</> Code]      │
 │                           │  ┌────────────────────────────┐  │
@@ -59,7 +59,7 @@ Aucune clé n'est nécessaire pour démarrer : le **Supernova Engine** intégré
 
 | Fournisseur | URL de base | Clé |
 | --- | --- | --- |
-| Supernova Engine | — | aucune |
+| Lime Engine | — | aucune |
 | OpenAI | `https://api.openai.com/v1` | `sk-…` |
 | Anthropic | `https://api.anthropic.com` | `sk-ant-…` |
 | Gemini | `https://generativelanguage.googleapis.com/v1beta` | clé AI Studio |
@@ -135,7 +135,7 @@ C'est ce qui rend la compatibilité très large (y compris avec de petits modèl
 
 | | **PC** | **Cloud** |
 | --- | --- | --- |
-| Emplacement | `workspaces/<nom>-<id>/` (ou un chemin absolu choisi) | `data/cloud/<id>/`, dossier interne à Supernova IA |
+| Emplacement | `workspaces/<nom>-<id>/` (ou un chemin absolu choisi) | `data/cloud/<id>/`, dossier interne à Lime AI |
 | Écriture disque | oui | oui, dans le dossier interne (masqué de l'interface) |
 | Export | ZIP | ZIP (bouton **⤓ ZIP**) |
 | Prévisualisation | oui | oui |
@@ -151,12 +151,12 @@ Ils survivent à la fermeture du site et sont partagés entre le site et l'appli
 
 - **Site seul** : le serveur écrit dans `data/.user/` et le navigateur s'y resynchronise toutes
   les 4 secondes. Un second onglet voit donc les mêmes conversations et réglages.
-- **Desktop + site** : au démarrage, l'application desktop cherche un serveur Supernova sur
+- **Desktop + site** : au démarrage, l'application desktop cherche un serveur Lime sur
   `127.0.0.1:3000`. S'il existe, elle s'y connecte et utilise la même sauvegarde. Sinon elle
   démarre son serveur embarqué en priorité sur le port 3000 : ouvrir `http://localhost:3000`
   dans un navigateur affiche alors la même interface et les mêmes données.
-- **Dossier personnalisé** : `SUPERNOVA_DATA=/chemin/partage` force le même dossier de données
-  pour le site et le desktop. `SUPERNOVA_WORKSPACES` fait la même chose pour les projets PC.
+- **Dossier personnalisé** : `LIME_DATA=/chemin/partage` force le même dossier de données
+  pour le site et le desktop. `LIME_WORKSPACES` fait la même chose pour les projets PC.
 - Le fichier est protégé par les permissions du compte (`700` pour le dossier, `600` pour le
   fichier sous Linux/macOS, attribut caché sous Windows). Il n'est pas chiffré.
 
@@ -173,7 +173,7 @@ npm run dist:mac      # DMG + ZIP macOS
 
 Les artefacts sont écrits dans `release/`. En desktop, les données sont stockées dans le
 dossier utilisateur de l'application (`app.getPath('userData')`), pas dans le dossier du projet.
-Si un site Supernova tourne déjà sur le port 3000, le desktop s'y rattache ; sinon il démarre
+Si un site Lime tourne déjà sur le port 3000, le desktop s'y rattache ; sinon il démarre
 son serveur embarqué sur ce port pour que `http://localhost:3000` partage la même sauvegarde.
 
 > Construire un `.exe` depuis Linux demande Wine, une `.app` macOS doit être construite sur
@@ -203,6 +203,7 @@ public/
   js/workspace.js aperçu, éditeur, console, journal
   js/terminal.js  terminal WebSocket
   js/settings.js  paramètres + MCP
+  js/select.js    menus déroulants thémés
   js/app.js       amorçage, projets, raccourcis
 desktop/
   main.cjs        enveloppe Electron (serveur embarqué + fenêtre)
@@ -216,20 +217,20 @@ build/            icônes générées (PNG, ICO, ICNS)
 ```bash
 PORT=3000                     # port du site
 HOST=127.0.0.1                # 0.0.0.0 pour exposer sur le réseau local
-SUPERNOVA_WORKSPACES=/chemin  # racine des projets PC
-SUPERNOVA_DATA=/chemin        # données : projets, Cloud, MCP, sauvegarde .user
-SUPERNOVA_SITE_PORT=3000      # port du site détecté par le desktop
-SUPERNOVA_DISABLE_SHELL=1     # coupe l'exécution de commandes
+LIME_WORKSPACES=/chemin  # racine des projets PC
+LIME_DATA=/chemin        # données : projets, Cloud, MCP, sauvegarde .user
+LIME_SITE_PORT=3000      # port du site détecté par le desktop
+LIME_DISABLE_SHELL=1     # coupe l'exécution de commandes
 ```
 
 ## Sécurité et limites
 
 - Le terminal et l'agent exécutent de **vraies commandes shell**. Garde `HOST=127.0.0.1`,
-  ne lance pas Supernova sur un projet sensible, et vérifie les commandes proposées.
+  ne lance pas Lime sur un projet sensible, et vérifie les commandes proposées.
 - L'aperçu live fonctionne pour des projets **statiques** (HTML/CSS/JS). Pour React/Vue/Next :
   `npm install` puis `npm run dev` dans le Terminal, puis colle l'URL du serveur de dev
   (ex. `http://localhost:5173`) dans la barre d'aperçu.
-- Le **Supernova Engine** n'est pas un LLM : il est rapide, hors ligne et honnête sur ses limites.
+- Le **Lime Engine** n'est pas un LLM : il est rapide, hors ligne et honnête sur ses limites.
   Pour du code complexe, branche un modèle.
 - La sauvegarde `data/.user/state.json` contient les conversations et les réglages, y compris
   la clé d'API si tu en as saisi une. Elle reste locale mais n'est pas chiffrée ; ne la copie pas

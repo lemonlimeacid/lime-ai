@@ -3,7 +3,7 @@
  * Utilisé par le moteur local (et exposé via /api/search).
  */
 
-const UA = 'SupernovaIA/1.0 (+local dev agent; contact: local)';
+const UA = 'LimeIA/1.0 (+local dev agent; contact: local)';
 
 async function fetchJson(url, timeout = 8000) {
   const controller = new AbortController();

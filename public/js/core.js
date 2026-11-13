@@ -1,4 +1,5 @@
-/* Supernova IA — noyau partagé : DOM, réglages, état, API, markdown, bus */
+/* Lime AI — noyau partagé : DOM, réglages, état, API, markdown, bus */
+import { normalizeTheme } from './themes.js';
 
 export const $ = (selector, root = document) => root.querySelector(selector);
 export const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -69,7 +70,7 @@ export function timeAgo(iso) {
 
 export const DEFAULT_SETTINGS = {
   provider: 'local',
-  model: 'supernova-mini',
+  model: 'lime-mini',
   apiKey: '',
   baseUrl: '',
   temperature: 0.7,
@@ -81,7 +82,8 @@ export const DEFAULT_SETTINGS = {
   systemPrompt: '',
   voiceLang: 'en-US',
   autoSpeak: false,
-  themeStyle: 'default',
+  theme: 'lime-dark',
+  threeD: true,
   mode: 'pc',
   lastProjectId: null,
   githubToken: '',
@@ -90,8 +92,8 @@ export const DEFAULT_SETTINGS = {
   githubRepos: {},
 };
 
-const SETTINGS_KEY = 'supernova.settings';
-const CHATS_KEY = 'supernova.chats';
+const SETTINGS_KEY = 'lime.settings';
+const CHATS_KEY = 'lime.chats';
 
 function readLocal(key, fallback) {
   try {
@@ -122,22 +124,34 @@ let statePollTimer = null;
 const pendingStatePatch = {};
 
 function normalizeSettings(raw) {
-  const settings = { ...DEFAULT_SETTINGS, ...(raw && typeof raw === 'object' ? raw : {}) };
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const settings = { ...DEFAULT_SETTINGS, ...source };
   // Compatibility with the legacy “web” mode, now stored in internal Cloud.
   if (settings.mode === 'web') settings.mode = 'cloud';
   const languageAliases = { 'français': 'French', english: 'English', 'español': 'Spanish', deutsch: 'German', 'português': 'Portuguese' };
   if (languageAliases[settings.language]) settings.language = languageAliases[settings.language];
+
+  // Migrate the old independent light/dark button, model id and glass/minimal style.
+  if (settings.model === 'supernova-mini') settings.model = 'lime-mini';
+  let storedTheme = null;
+  try {
+    storedTheme = localStorage.getItem('lime.theme');
+  } catch {
+    /* Local storage may be unavailable. */
+  }
+  settings.theme = normalizeTheme(source.theme || storedTheme || settings.theme).id;
+  settings.threeD = typeof source.threeD === 'boolean' ? source.threeD : source.themeStyle !== 'minimal';
+  delete settings.themeStyle;
   return settings;
 }
 
 function readUiPreferences() {
   try {
     return {
-      theme: localStorage.getItem('supernova.theme') || null,
-      chatWidth: localStorage.getItem('supernova.chatWidth') || null,
-      threadsCollapsed: localStorage.getItem('supernova.threadsCollapsed') || null,
-      hiddenViews: readLocal('supernova.hiddenViews', null),
-      workPanelHidden: localStorage.getItem('supernova.workPanelHidden') || null,
+      chatWidth: localStorage.getItem('lime.chatWidth') || null,
+      threadsCollapsed: localStorage.getItem('lime.threadsCollapsed') || null,
+      hiddenViews: readLocal('lime.hiddenViews', null),
+      workPanelHidden: localStorage.getItem('lime.workPanelHidden') || null,
     };
   } catch {
     return {};
@@ -145,40 +159,31 @@ function readUiPreferences() {
 }
 
 function applyUiPreferences(ui = {}) {
-  if (ui.theme === 'light' || ui.theme === 'dark') {
-    if (ui.theme === 'light') document.documentElement.dataset.theme = 'light';
-    else delete document.documentElement.dataset.theme;
-    try {
-      localStorage.setItem('supernova.theme', ui.theme);
-    } catch {
-      /* stockage local indisponible */
-    }
-  }
   if (typeof ui.chatWidth === 'string' && /^\d+(?:\.\d+)?px$/.test(ui.chatWidth)) {
     document.documentElement.style.setProperty('--chat-width', ui.chatWidth);
     try {
-      localStorage.setItem('supernova.chatWidth', ui.chatWidth);
+      localStorage.setItem('lime.chatWidth', ui.chatWidth);
     } catch {
       /* stockage local indisponible */
     }
   }
   if (ui.threadsCollapsed === '0' || ui.threadsCollapsed === '1') {
     try {
-      localStorage.setItem('supernova.threadsCollapsed', ui.threadsCollapsed);
+      localStorage.setItem('lime.threadsCollapsed', ui.threadsCollapsed);
     } catch {
       /* stockage local indisponible */
     }
   }
   if (Array.isArray(ui.hiddenViews)) {
     try {
-      localStorage.setItem('supernova.hiddenViews', JSON.stringify(ui.hiddenViews));
+      localStorage.setItem('lime.hiddenViews', JSON.stringify(ui.hiddenViews));
     } catch {
       /* stockage local indisponible */
     }
   }
   if (ui.workPanelHidden === '0' || ui.workPanelHidden === '1') {
     try {
-      localStorage.setItem('supernova.workPanelHidden', ui.workPanelHidden);
+      localStorage.setItem('lime.workPanelHidden', ui.workPanelHidden);
     } catch {
       /* stockage local indisponible */
     }
@@ -287,7 +292,7 @@ class Bus {
       try {
         handler(payload);
       } catch (error) {
-        console.error('[supernova]', event, error);
+        console.error('[lime]', event, error);
       }
     }
   }
@@ -343,7 +348,7 @@ export const api = {
 
 /* ── Conversations persistées ────────────────────────────────────────────── */
 
-const THREADS_KEY = 'supernova.threads';
+const THREADS_KEY = 'lime.threads';
 
 function newThreadId() {
   try {
@@ -396,7 +401,7 @@ function normalizeAgents(agents) {
   return (Array.isArray(agents) ? agents : []).slice(0, 6).map((agent, index) => ({
     id: String(agent?.id || `agent-${index + 1}`).slice(0, 80),
     name: String(agent?.name || `Agent ${index + 1}`).trim().slice(0, 60) || `Agent ${index + 1}`,
-    model: String(agent?.model || '').trim().slice(0, 120),
+    model: String(agent?.model || '').trim().slice(0, 120).replace(/^supernova-mini$/, 'lime-mini'),
   })).filter((agent) => agent.model);
 }
 
@@ -875,8 +880,8 @@ export function projectId() {
 
 export function providerLabel() {
   const preset = state.config.providers?.find((p) => p.id === state.settings.provider);
-  if (!preset) return 'Supernova Engine';
-  if (preset.id === 'local') return 'Supernova Engine (local)';
+  if (!preset) return 'Lime Engine';
+  if (preset.id === 'local') return 'Lime Engine (local)';
   return `${preset.label.split(' (')[0]} · ${state.settings.model || preset.models[0]}`;
 }
 

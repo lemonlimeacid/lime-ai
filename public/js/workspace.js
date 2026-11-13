@@ -1,4 +1,4 @@
-/* Supernova IA — espace de travail : aperçu live, fichiers, console, journal */
+/* Lime AI — espace de travail : aperçu live, fichiers, console, journal */
 
 import { $, $$, h, api, state, bus, toast, providerLabel, formatBytes, icon, saveUiPreferences } from './core.js';
 
@@ -40,9 +40,9 @@ const previewScrollbarCss = `
 function stylePreviewScrollbars() {
   try {
     const doc = previewFrame.contentDocument;
-    if (!doc || doc.getElementById('supernova-scrollbars')) return;
+    if (!doc || doc.getElementById('lime-scrollbars')) return;
     const style = doc.createElement('style');
-    style.id = 'supernova-scrollbars';
+    style.id = 'lime-scrollbars';
     style.textContent = previewScrollbarCss;
     (doc.head || doc.documentElement).append(style);
   } catch (error) {
@@ -181,12 +181,12 @@ export function initWorkspace() {
   // Console de l'aperçu
   window.addEventListener('message', (event) => {
     const data = event.data;
-    if (!data || !data.__supernova) return;
-    if (data.__supernova === 'console') {
+    if (!data || !data.__lime) return;
+    if (data.__lime === 'console') {
       addConsole(data.payload.level || 'log', data.payload.text || '');
-    } else if (data.__supernova === 'error') {
+    } else if (data.__lime === 'error') {
       addConsole('error', data.payload.text || 'Unknown error');
-    } else if (data.__supernova === 'ready') {
+    } else if (data.__lime === 'ready') {
       addConsole('info', `Preview loaded — ${data.payload.url}`);
     }
   });
@@ -200,6 +200,7 @@ export function initWorkspace() {
     $('#statusMcp').textContent = `MCP: ${total} tool${total > 1 ? 's' : ''}`;
   });
   bus.on('preview:reload', () => reloadPreviewSoon());
+  bus.on('preview:reset', () => resetPreview());
   bus.on('streaming:changed', syncPreviewStreaming);
 
   renderJournal();
@@ -309,7 +310,7 @@ function updateStatus() {
   $('#statusProvider').textContent = providerLabel();
   const pathEl = $('#statusPath');
   if (state.project) {
-    pathEl.textContent = state.project.mode === 'cloud' ? 'Supernova Cloud · internal storage + ZIP' : state.project.rootDir || '';
+    pathEl.textContent = state.project.mode === 'cloud' ? 'Lime Cloud · internal storage + ZIP' : state.project.rootDir || '';
     pathEl.title = pathEl.textContent;
   } else {
     pathEl.textContent = '—';
@@ -320,12 +321,12 @@ function updateStatus() {
 
 function loadUiPreferences() {
   try {
-    const stored = JSON.parse(localStorage.getItem('supernova.hiddenViews') || '[]');
+    const stored = JSON.parse(localStorage.getItem('lime.hiddenViews') || '[]');
     hiddenViews = new Set(Array.isArray(stored) ? stored.filter((view) => VIEWS.includes(view)) : []);
   } catch {
     hiddenViews = new Set();
   }
-  workCollapsed = localStorage.getItem('supernova.workPanelHidden') === '1';
+  workCollapsed = localStorage.getItem('lime.workPanelHidden') === '1';
 }
 
 function visibleViews() {
@@ -372,6 +373,7 @@ function syncViewControls() {
     toggle.setAttribute('aria-label', label);
     toggle.setAttribute('aria-pressed', String(!workCollapsed));
     toggle.classList.toggle('active', workCollapsed);
+    toggle.querySelector('use')?.setAttribute('href', workCollapsed ? '#i-panel-expand' : '#i-panel-collapse');
   }
 }
 
@@ -582,6 +584,15 @@ function syncPreviewStreaming(on) {
 function previewTarget() {
   if (!state.project) return '';
   return `${location.origin}/preview/${state.project.id}/`;
+}
+
+export function resetPreview() {
+  if (!previewFrame) return;
+  previewFrame.src = 'about:blank';
+  if (previewUrl) previewUrl.value = previewTarget();
+  previewEmpty?.classList.remove('hidden');
+  previewLoadPending = false;
+  hidePreviewLoader();
 }
 
 export function renderPreview() {

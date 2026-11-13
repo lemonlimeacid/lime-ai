@@ -1,4 +1,4 @@
-/* Supernova IA — roster et contrôle des agents d'un projet super agents */
+/* Lime AI — roster et contrôle des agents d'un projet super agents */
 
 import { $, h, state, bus, toast, updateThread, icon } from './core.js';
 
@@ -31,12 +31,12 @@ function availableModels() {
     state.settings.model,
     ...(preset?.models || []),
   ];
-  if (!models.some(Boolean)) models.push('supernova-mini');
+  if (!models.some(Boolean)) models.push('lime-mini');
   return [...new Set(models.map((model) => String(model || '').trim()).filter(Boolean))];
 }
 
 export function defaultSuperAgents() {
-  const model = String(state.settings.model || availableModels()[0] || 'supernova-mini');
+  const model = String(state.settings.model || availableModels()[0] || 'lime-mini');
   return [1, 2].map((number) => ({
     id: newAgentId(),
     name: `Agent ${number}`,
@@ -78,7 +78,7 @@ function addAgent() {
     toast(`Maximum ${MAX_AGENTS} agents per super agents project.`, 'warn', 3200);
     return;
   }
-  const model = String(state.settings.model || availableModels()[0] || 'supernova-mini');
+  const model = String(state.settings.model || availableModels()[0] || 'lime-mini');
   const agent = {
     id: newAgentId(),
     name: `Agent ${nextAgentNumber(agents)}`,

@@ -12,7 +12,7 @@ import { DATA_DIR } from './store.js';
 
 const CONFIG_FILE = path.join(DATA_DIR, 'mcp.json');
 const PROTOCOL_VERSION = '2024-11-05';
-const CLIENT_INFO = { name: 'supernova-ia', version: '1.0.2' };
+const CLIENT_INFO = { name: 'lime-ai', version: '1.0.3' };
 
 let config = loadConfig();
 const connections = new Map(); // serverId -> connection | {error}

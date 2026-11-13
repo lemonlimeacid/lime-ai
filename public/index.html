@@ -3,31 +3,66 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Supernova AI — local coding agent</title>
-  <meta name="description" content="Supernova AI: a local coding agent in the spirit of Claude Code + bolt.new. Multi-API, MCP, live preview, PC/Cloud mode, voice." />
+  <title>Lime AI — local coding agent</title>
+  <meta name="description" content="Lime AI: a local coding agent in the spirit of Claude Code + bolt.new. Multi-API, MCP, live preview, PC/Cloud mode, voice." />
   <script>
-    try {
-      if (localStorage.getItem('supernova.theme') === 'light') document.documentElement.dataset.theme = 'light';
-      const savedSettings = JSON.parse(localStorage.getItem('supernova.settings') || '{}');
-      if (savedSettings && (savedSettings.themeStyle === 'glass' || savedSettings.themeStyle === 'minimal')) {
-        document.documentElement.dataset.style = savedSettings.themeStyle;
-      }
-    } catch (error) {}
+    (() => {
+      try {
+        const root = document.documentElement;
+        const legacyPrefix = 'supernova.';
+        const legacyKeys = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(legacyPrefix)) legacyKeys.push(key);
+        }
+        for (const key of legacyKeys) {
+          const next = `lime.${key.slice(legacyPrefix.length)}`;
+          if (localStorage.getItem(next) == null) localStorage.setItem(next, localStorage.getItem(key));
+          localStorage.removeItem(key);
+        }
+
+        const themes = {
+          'lime-light': ['light', 'lime'], 'lime-dark': ['dark', 'lime'],
+          'base-light': ['light', 'base'], 'base-dark': ['dark', 'base'],
+          'nova-light': ['light', 'nova'], 'nova-dark': ['dark', 'nova'],
+          peach: ['light', 'peach'], midnight: ['dark', 'midnight'],
+          lilac: ['light', 'lilac'], dusk: ['dark', 'dusk'],
+          seafoam: ['light', 'seafoam'], graphite: ['dark', 'graphite'],
+          daybreak: ['light', 'daybreak'], sherbet: ['light', 'sherbet'],
+        };
+        const savedSettings = JSON.parse(localStorage.getItem('lime.settings') || '{}') || {};
+        let saved = String(localStorage.getItem('lime.theme') || savedSettings.theme || 'lime-dark').trim().toLowerCase();
+        if (!Object.prototype.hasOwnProperty.call(themes, saved)) {
+          saved = saved === 'light' ? 'lime-light' : saved === 'dark' ? 'lime-dark' : 'lime-dark';
+        }
+        const [tone, palette] = themes[saved];
+        root.dataset.theme = tone;
+        root.dataset.palette = palette;
+        const savedDepth = localStorage.getItem('lime.threeD');
+        const threeD = savedDepth
+          ? savedDepth !== 'off'
+          : savedSettings.threeD !== false && savedSettings.themeStyle !== 'minimal';
+        root.setAttribute('data-3d', threeD ? 'on' : 'off');
+      } catch (error) {}
+    })();
   </script>
   <link rel="preload" href="/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/css/app.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5.5' fill='%23141413'/%3E%3Cg fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' transform='rotate(24 12 12)'%3E%3Cellipse cx='12' cy='12' rx='8.7' ry='4.1' stroke-dasharray='23 7' stroke-dashoffset='-3'/%3E%3Cpath d='M4.7 12a7.3 3.2 0 0 1 14.6 0' opacity='.45'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='2' fill='%23e07a52'/%3E%3Cpath d='M19.3 5.8 20.5 4.6M4.7 18.2 3.5 19.4' fill='none' stroke='%23e07a52' stroke-width='2' stroke-linecap='round' opacity='.55'/%3E%3C/svg%3E" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 </head>
 <body>
   <!-- Système d'icônes (traits 1.75, style Lucide) -->
   <svg class="sprite" aria-hidden="true" focusable="false">
     <symbol id="i-logo" viewBox="0 0 24 24">
-      <g transform="rotate(24 12 12)">
-        <ellipse cx="12" cy="12" rx="8.7" ry="4.1" stroke-dasharray="23 7" stroke-dashoffset="-3"/>
-        <path d="M4.7 12a7.3 3.2 0 0 1 14.6 0" opacity=".45"/>
+      <circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="6.7" fill="currentColor" opacity=".16" stroke="none"/>
+      <g fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round">
+        <path d="M12 5.3v13.4"/>
+        <path d="M5.3 12h13.4"/>
+        <path d="m7.3 7.3 9.4 9.4"/>
+        <path d="m16.7 7.3-9.4 9.4"/>
       </g>
-      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
-      <path d="M19.3 5.8 20.5 4.6M4.7 18.2 3.5 19.4" opacity=".55"/>
+      <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none"/>
     </symbol>
     <symbol id="i-panel-left" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
     <symbol id="i-panel-right" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="m9 9 3 3-3 3"/></symbol>
@@ -41,6 +76,7 @@
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 3.6 5.8 3.6 9s-1.1 6.4-3.6 9c-2.5-2.6-3.6-5.8-3.6-9s1.1-6.4 3.6-9Z"/></symbol>
     <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a6 6 0 0 1-1.1-11.9 7 7 0 0 1 13.1 2.1A4.4 4.4 0 0 1 17.5 19Z"/></symbol>
     <symbol id="i-panel-collapse" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="m10 9-3 3 3 3"/></symbol>
+    <symbol id="i-panel-expand" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="m8 9 3 3-3 3"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M1 14h6"/><path d="M9 8h6"/><path d="M17 16h6"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4"/><path d="M12 17h.01"/></symbol>
@@ -86,7 +122,7 @@
     <header class="topbar">
       <div class="brand">
         <span class="logo" aria-hidden="true"><svg class="i"><use href="#i-logo"></use></svg></span>
-        <span class="brand-text"><strong>Supernova</strong><span class="brand-sub">AI</span></span>
+        <span class="brand-text"><strong>Lime</strong><span class="brand-sub">AI</span></span>
       </div>
 
       <span class="divider-v" aria-hidden="true"></span>
@@ -108,7 +144,7 @@
 
       <div class="mode-toggle" role="group" aria-label="Project creation mode">
         <button data-mode="pc" id="modePcBtn" class="active" title="Create a real folder on your PC"><svg class="i sm"><use href="#i-monitor"></use></svg><span>PC</span></button>
-        <button data-mode="cloud" id="modeCloudBtn" title="Create a project in Supernova Cloud, exportable as ZIP"><svg class="i sm"><use href="#i-cloud"></use></svg><span>Cloud</span></button>
+        <button data-mode="cloud" id="modeCloudBtn" title="Create a project in Lime Cloud, exportable as ZIP"><svg class="i sm"><use href="#i-cloud"></use></svg><span>Cloud</span></button>
       </div>
 
       <div class="top-actions">
@@ -166,7 +202,7 @@
       <section class="pane chat-pane" id="chatPane">
         <div class="pane-head">
           <span class="pane-title">Conversation</span>
-          <span class="pill" id="enginePill">Supernova Engine</span>
+          <span class="pill" id="enginePill">Lime Engine</span>
           <div class="spacer"></div>
           <div class="pane-controls" id="paneControls">
             <button id="workspaceViewsBtn" class="icon-btn small" type="button" title="Choose right panel views" aria-label="Right panel views" aria-haspopup="dialog" aria-expanded="false">
@@ -182,7 +218,7 @@
               <label class="view-toggle"><input type="checkbox" data-view-toggle="search" checked /><span><strong>Searches</strong><small>The agent’s web searches</small></span></label>
             </div>
           </div>
-          <button id="toggleWorkBtn" class="icon-btn small" type="button" title="Hide right panel" aria-label="Hide right panel" aria-pressed="true"><svg class="i sm"><use href="#i-panel-right"></use></svg></button>
+          <button id="toggleWorkBtn" class="icon-btn small" type="button" title="Hide right panel" aria-label="Hide right panel" aria-pressed="true"><svg class="i sm"><use href="#i-panel-collapse"></use></svg></button>
           <button id="clearChatBtn" class="icon-btn small" title="Clear conversation" aria-label="Clear conversation"><svg class="i sm"><use href="#i-trash"></use></svg></button>
         </div>
 
@@ -223,7 +259,7 @@
               <div class="model-picker" id="modelPicker">
                 <button id="modelPickerBtn" class="model-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="modelPickerMenu" title="Active model — choose a model">
                   <svg class="i sm" aria-hidden="true"><use href="#i-cpu"></use></svg>
-                  <span id="modelPickerLabel" class="model-trigger-label">supernova-mini</span>
+                  <span id="modelPickerLabel" class="model-trigger-label">lime-mini</span>
                   <span id="modelPickerPriceBadge" class="model-price-badge" hidden></span>
                   <svg class="i xs model-trigger-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
                 </button>
@@ -233,7 +269,7 @@
                     <input id="modelEffortSlider" class="model-effort-slider" type="range" min="0" max="2" step="1" value="1" aria-label="Model performance level" />
                   </div>
                   <div class="model-menu-current">
-                    <span id="modelMenuActiveName" class="model-menu-current-name">supernova-mini</span>
+                    <span id="modelMenuActiveName" class="model-menu-current-name">lime-mini</span>
                     <span id="modelMenuActiveBadge" class="model-price-badge" hidden></span>
                     <span id="modelMenuDefaultBadge" class="model-default-badge">Default</span>
                     <span class="spacer"></span>
@@ -315,7 +351,7 @@
                     <div class="preview-loader-copy">
                       <span class="preview-loader-eyebrow" id="previewLoaderEyebrow">Generating</span>
                       <strong id="previewLoaderTitle">The stars are aligning…</strong>
-                      <span class="preview-loader-detail" id="previewLoaderDetail">The preview is getting ready while Supernova writes the files.</span>
+                      <span class="preview-loader-detail" id="previewLoaderDetail">The preview is getting ready while Lime writes the files.</span>
                     </div>
                   </div>
                   <div class="empty-state" id="previewEmpty">
@@ -408,7 +444,7 @@
       <span class="status-sep" aria-hidden="true"></span>
       <span id="statusSpend" class="status-item" title="Estimated API spend">Est. spend: $0.00</span>
       <span class="status-sep" aria-hidden="true"></span>
-      <span id="statusProvider" class="status-item">Supernova Engine</span>
+      <span id="statusProvider" class="status-item">Lime Engine</span>
     </footer>
   </div>
 
@@ -416,7 +452,7 @@
   <dialog id="newProjectDialog" class="dialog">
     <form method="dialog" id="newProjectForm">
       <h2>New project</h2>
-      <p class="dialog-sub">Choose where the project lives: a real folder on your machine (a <code>Project - N</code> folder is created by default), or Supernova Cloud, which can be exported as a ZIP.</p>
+      <p class="dialog-sub">Choose where the project lives: a real folder on your machine (a <code>Project - N</code> folder is created by default), or Lime Cloud, which can be exported as a ZIP.</p>
 
       <label class="field">
         <span>Project name</span>
@@ -433,7 +469,7 @@
         <label class="radio">
           <input type="radio" name="npMode" value="cloud" />
           <span class="radio-icon"><svg class="i"><use href="#i-cloud"></use></svg></span>
-          <span class="radio-text"><strong>In Supernova Cloud</strong><small>Internal Supernova AI folder, hidden from your folders, exportable as ZIP on demand.</small></span>
+          <span class="radio-text"><strong>In Lime Cloud</strong><small>Internal Lime AI folder, hidden from your folders, exportable as ZIP on demand.</small></span>
         </label>
       </fieldset>
 
@@ -473,7 +509,7 @@
         <section class="settings-section active" data-section-panel="ai">
           <div class="section-head">
             <h3>Provider &amp; model</h3>
-            <p>Supernova works with every OpenAI-compatible API, plus Anthropic and Gemini. The key is stored in <strong>your browser</strong> and in the app’s local backup; it is never sent anywhere except the selected provider.</p>
+            <p>Lime works with every OpenAI-compatible API, plus Anthropic and Gemini. The key is stored in <strong>your browser</strong> and in the app’s local backup; it is never sent anywhere except the selected provider.</p>
           </div>
 
           <label class="field">
@@ -510,7 +546,7 @@
           </label>
 
           <div class="callout">
-            <strong>No key needed</strong> — the built-in <em>Supernova Engine</em> works offline: it generates 5 project types, modifies existing projects, answers technical questions and searches the web.
+            <strong>No key needed</strong> — the built-in <em>Lime Engine</em> works offline: it generates 5 project types, modifies existing projects, answers technical questions and searches the web.
           </div>
         </section>
 
@@ -586,37 +622,21 @@
         <section class="settings-section" data-section-panel="voice">
           <div class="section-head">
             <h3>Appearance &amp; voice</h3>
-            <p>Interface style, depth and voice preferences.</p>
+            <p>Fourteen themes, gradient previews, optional depth and voice preferences.</p>
           </div>
 
-          <div class="field">
-            <span id="themeStyleLabel">Theme style</span>
-            <div class="theme-select" id="themeSelect">
-              <button id="themeSelectBtn" class="theme-select-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="themeStyleLabel themeSelectValue">
-                <span class="theme-swatch" id="themeSelectSwatch" data-style="default" aria-hidden="true"></span>
-                <span class="theme-select-value" id="themeSelectValue">Default theme</span>
-                <svg class="i sm theme-select-chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
-              </button>
-              <div class="theme-select-menu" id="themeSelectMenu" role="listbox" aria-labelledby="themeStyleLabel" hidden>
-                <button type="button" role="option" data-theme-style="default" aria-selected="true">
-                  <span class="theme-swatch" data-style="default" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Default theme</strong><small>Graphite, fine lines, warm accent.</small></span>
-                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
-                </button>
-                <button type="button" role="option" data-theme-style="glass" aria-selected="false">
-                  <span class="theme-swatch" data-style="glass" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Liquid glass theme</strong><small>Translucent surfaces and background blur.</small></span>
-                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
-                </button>
-                <button type="button" role="option" data-theme-style="minimal" aria-selected="false">
-                  <span class="theme-swatch" data-style="minimal" aria-hidden="true"></span>
-                  <span class="theme-option-copy"><strong>Minimalist theme</strong><small>No shadows, blur or 3D depth.</small></span>
-                  <svg class="i sm theme-option-check" aria-hidden="true"><use href="#i-check"></use></svg>
-                </button>
-              </div>
+          <div class="theme-gallery-block">
+            <div class="theme-gallery-head">
+              <span class="theme-gallery-eyebrow">Gradients</span>
+              <span class="theme-gallery-note">Pick a palette · sun / moon flips the pair</span>
             </div>
+            <div class="theme-gallery" id="themeGallery" role="radiogroup" aria-label="Theme"></div>
           </div>
-          <p class="hint">The style combines with the light or dark mode selected by the sun / moon button in the top bar.</p>
+
+          <label class="switch-row">
+            <span><strong>3D depth</strong><small>Perspective, layered shadows and depth. Turn off for a flat interface.</small></span>
+            <input type="checkbox" id="set3d" class="switch" checked />
+          </label>
 
           <label class="field">
             <span>Dictation language</span>
@@ -642,16 +662,18 @@
           <details class="theme-guide">
             <summary>Create your own theme — tutorial summary</summary>
             <ol>
-              <li>Open <code>public/css/app.css</code>: the entire theme is driven by the <code>:root</code> variables (backgrounds, text, accent, borders, shadows).</li>
-              <li>Create a <code>:root[data-style="my-theme"]</code> block and redefine the relevant variables, including depth (<code>--elev-1</code>, <code>--edge-light</code>, <code>--window-elev</code>).</li>
-              <li>Add an option to the <code>#themeSelectMenu</code> menu (a <code>data-theme-style</code> button).</li>
-              <li>In <code>public/js/settings.js</code>, apply the choice with <code>document.documentElement.dataset.style = value</code> and save it with <code>saveSettings({ themeStyle: value })</code>.</li>
-              <li>Test the theme in light and dark mode, check the contrast, then reload: the choice should persist.</li>
+              <li>Open <code>public/css/app.css</code>: each theme combines a palette and a <code>light</code> or <code>dark</code> tone.</li>
+              <li>Create a <code>:root[data-palette="my-theme"]</code> block and redefine the colors, including <code>--accent</code>, <code>--accent-rgb</code> and <code>--accent-gradient</code>.</li>
+              <li>In <code>public/js/themes.js</code>, add the preset to <code>THEME_PRESETS</code>; the gallery renders it automatically.</li>
+              <li>Give it a gradient preview, then check the selected state, the sun / moon pair and contrast in both tones.</li>
+              <li>Check both tones, the 3D switch and contrast, then reload: the choice should persist.</li>
             </ol>
-            <pre><code>:root[data-style="my-theme"] {
+            <pre><code>:root[data-palette="my-theme"] {
   --bg: #101014;
   --panel: #17171d;
   --accent: #7c8cff;
+  --accent-rgb: 124, 140, 255;
+  --accent-gradient: linear-gradient(135deg, #a99dff, #5a48c9);
   --line: #2a2a34;
 }</code></pre>
           </details>
@@ -663,20 +685,20 @@
 
         <section class="settings-section" data-section-panel="about">
           <div class="section-head">
-            <h3>Supernova AI <span class="pill">v1.0.2</span></h3>
+            <h3>Lime AI <span class="pill">v1.0.3</span></h3>
             <p>Local coding agent: the action loop of Claude Code, the instant preview of bolt.new.</p>
           </div>
           <ul class="about-list">
             <li><strong>Multi-API</strong> — OpenAI, OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Anthropic, Gemini, Ollama, LM Studio, vLLM…</li>
             <li><strong>MCP</strong> — stdio and HTTP servers, tools exposed to the agent.</li>
             <li><strong>Preview</strong> — live app, editable code, terminal, console, log.</li>
-            <li><strong>PC / Cloud</strong> — real folder or Supernova internal storage with ZIP export.</li>
+            <li><strong>PC / Cloud</strong> — real folder or Lime internal storage with ZIP export.</li>
             <li><strong>Voice</strong> — dictation and speech synthesis.</li>
             <li><strong>Local first</strong> — keys in the browser, projects on your machine.</li>
           </ul>
           <div id="aboutDirs" class="about-dirs"></div>
           <div class="callout warn">
-            The terminal and the agent run real shell commands. Never run Supernova on a project you would not trust an AI with, and keep <code>HOST=127.0.0.1</code> to stay local.
+            The terminal and the agent run real shell commands. Never run Lime on a project you would not trust an AI with, and keep <code>HOST=127.0.0.1</code> to stay local.
           </div>
         </section>
       </div>
@@ -686,7 +708,7 @@
   <!-- ── Aide ───────────────────────────────────────────────────────────── -->
   <dialog id="helpDialog" class="dialog wide">
     <div class="dialog-head">
-      <h2>Welcome to Supernova AI</h2>
+      <h2>Welcome to Lime AI</h2>
       <button class="icon-btn small" id="helpCloseBtn" aria-label="Close"><svg class="i sm"><use href="#i-x"></use></svg></button>
     </div>
     <div class="help-body">
@@ -694,12 +716,12 @@
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-sparkles"></use></svg></span>
           <h3>Connect a model, or don’t</h3>
-          <p>Without a key, the local <strong>Supernova Engine</strong> generates sites, to-do apps, calculators, games and weather apps. With a key (Settings → AI connection), you unlock GPT, Claude, Gemini, Ollama…</p>
+          <p>Without a key, the local <strong>Lime Engine</strong> generates sites, to-do apps, calculators, games and weather apps. With a key (Settings → AI connection), you unlock GPT, Claude, Gemini, Ollama…</p>
         </article>
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-monitor"></use></svg></span>
           <h3>Choose PC or Cloud</h3>
-          <p><strong>PC</strong> writes to a real folder through the Node server. <strong>Cloud</strong> writes to an internal Supernova AI folder and offers a ZIP export.</p>
+          <p><strong>PC</strong> writes to a real folder through the Node server. <strong>Cloud</strong> writes to an internal Lime AI folder and offers a ZIP export.</p>
         </article>
         <article>
           <span class="help-icon"><svg class="i"><use href="#i-code"></use></svg></span>
@@ -724,7 +746,7 @@
       <ul class="help-list">
         <li>A <strong>framework</strong> project (React, Vue…) does not render as-is: run <code>npm install</code> then <code>npm run dev</code> in the Terminal, and put the dev server URL in the preview bar.</li>
         <li>MCP servers are configured in <strong>Settings → MCP servers</strong>, with a command and its arguments.</li>
-        <li>Cloud mode writes files to <code>data/cloud</code>, an internal Supernova AI folder: they are available in the editor, terminal and ZIP, without appearing in your folders.</li>
+        <li>Cloud mode writes files to <code>data/cloud</code>, an internal Lime AI folder: they are available in the editor, terminal and ZIP, without appearing in your folders.</li>
       </ul>
     </div>
   </dialog>
@@ -737,11 +759,11 @@
     </div>
     <div class="github-body">
       <div id="githubDisconnected" class="github-view">
-        <p class="dialog-sub">Connect your GitHub account with a personal access token. The token stays in Supernova’s local backup, like AI keys.</p>
+        <p class="dialog-sub">Connect your GitHub account with a personal access token. The token stays in Lime’s local backup, like AI keys.</p>
         <label class="field">
           <span>Personal access token</span>
           <input id="githubToken" type="password" spellcheck="false" autocomplete="off" placeholder="ghp_… or github_pat_…" />
-          <span class="field-hint">Scopes to select: <code>repo</code> and, to create a repository, <code>repo</code> + administration. <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Supernova%20AI" target="_blank" rel="noopener noreferrer">Create a GitHub token</a> · <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noopener noreferrer">help</a></span>
+          <span class="field-hint">Scopes to select: <code>repo</code> and, to create a repository, <code>repo</code> + administration. <a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Lime%20AI" target="_blank" rel="noopener noreferrer">Create a GitHub token</a> · <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens" target="_blank" rel="noopener noreferrer">help</a></span>
         </label>
         <div class="github-actions">
           <button id="githubConnectBtn" class="btn primary" type="button">Connect GitHub</button>

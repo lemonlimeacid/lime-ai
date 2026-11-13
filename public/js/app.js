@@ -1,4 +1,4 @@
-/* Supernova IA — amorçage, projets, mode PC/Cloud, raccourcis */
+/* Lime AI — amorçage, projets, mode PC/Cloud, raccourcis */
 
 import { $, $$, h, api, state, bus, toast, saveSettings, ensureThread, setActiveThread, icon, hydrateServerState, startStatePolling, saveUiPreferences } from './core.js';
 import { initChat, sendMessage } from './chat.js';
@@ -9,6 +9,8 @@ import { initThreads } from './threads.js';
 import { initSuperAgents } from './superagents.js';
 import { initGithub } from './github.js';
 import { initUsageTracking } from './pricing.js';
+import { initSelects } from './select.js';
+import { normalizeTheme, oppositeTheme, applyTheme } from './themes.js';
 
 let splitterDragging = false;
 
@@ -33,6 +35,7 @@ async function boot() {
   initThreads();
   initSuperAgents();
   initGithub();
+  initSelects();
 
   await refreshProjects();
   await openInitialProject();
@@ -172,7 +175,7 @@ async function createProject({ name, mode, rootDir }) {
     updateZipState();
     toast(
       result.project.mode === 'cloud'
-        ? `Project “${result.project.name}” created in Supernova Cloud (ZIP export).`
+        ? `Project “${result.project.name}” created in Lime Cloud (ZIP export).`
         : `Project “${result.project.name}” created in “${projectFolderName(result.project)}”.`,
       'ok',
       4200
@@ -225,24 +228,24 @@ function bindChrome() {
   $('#helpBtn').addEventListener('click', () => $('#helpDialog').showModal());
   $('#helpCloseBtn').addEventListener('click', () => $('#helpDialog').close());
 
-  // Bascule thème clair / sombre (mémorisé dans le navigateur)
+  // Bascule clair / sombre dans la famille de thème active.
   const themeBtn = $('#themeBtn');
   const syncThemeButton = () => {
-    const light = document.documentElement.dataset.theme === 'light';
-    const label = light ? 'Switch to dark theme' : 'Switch to light theme';
+    const current = normalizeTheme(state.settings.theme);
+    const next = oppositeTheme(current.id);
+    const label = `Switch to ${next.label} theme`;
     themeBtn.title = label;
     themeBtn.setAttribute('aria-label', label);
-    themeBtn.setAttribute('aria-pressed', String(light));
+    themeBtn.setAttribute('aria-pressed', String(current.tone === 'light'));
   };
   themeBtn.addEventListener('click', () => {
-    const light = document.documentElement.dataset.theme !== 'light';
-    if (light) document.documentElement.dataset.theme = 'light';
-    else delete document.documentElement.dataset.theme;
-    saveUiPreferences({ theme: light ? 'light' : 'dark' });
+    const next = oppositeTheme(state.settings.theme);
+    applyTheme(next.id);
+    saveSettings({ theme: next.id });
     syncThemeButton();
   });
   syncThemeButton();
-  bus.on('ui:changed', syncThemeButton);
+  bus.on('settings:changed', syncThemeButton);
 
   $('#modePcBtn').addEventListener('click', () => switchMode('pc'));
   $('#modeCloudBtn').addEventListener('click', () => switchMode('cloud'));
@@ -251,12 +254,12 @@ function bindChrome() {
 
   const browseBtn = $('#npBrowse');
   if (browseBtn) {
-    if (window.supernovaDesktop?.chooseProjectFolder) {
+    if (window.limeDesktop?.chooseProjectFolder) {
       browseBtn.hidden = false;
       browseBtn.addEventListener('click', async () => {
         browseBtn.disabled = true;
         try {
-          const selected = await window.supernovaDesktop.chooseProjectFolder($('#npRoot').value.trim());
+          const selected = await window.limeDesktop.chooseProjectFolder($('#npRoot').value.trim());
           if (selected) {
             $('#npRoot').value = selected;
             $('#npRoot').focus();
@@ -312,7 +315,7 @@ function bindChrome() {
     saveUiPreferences({ chatWidth: value });
   });
 
-  const savedWidth = localStorage.getItem('supernova.chatWidth');
+  const savedWidth = localStorage.getItem('lime.chatWidth');
   if (savedWidth) document.documentElement.style.setProperty('--chat-width', savedWidth);
 
   // Raccourcis globaux
@@ -366,7 +369,7 @@ function switchMode(mode) {
   updateModeUI();
   toast(
     mode === 'cloud'
-      ? 'Cloud mode — new projects live in Supernova internal storage and export as ZIP.'
+      ? 'Cloud mode — new projects live in Lime internal storage and export as ZIP.'
       : 'PC mode — new projects create a real folder on your machine.',
     'info',
     4200
@@ -403,4 +406,4 @@ boot().catch((error) => {
 });
 
 // Exporté pour la console du navigateur (debug manuel)
-window.supernova = { state, api, bus, sendMessage, setView };
+window.lime = { state, api, bus, sendMessage, setView };

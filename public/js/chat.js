@@ -1,4 +1,4 @@
-/* Supernova IA — chat, streaming SSE, vocal, actions de l'agent */
+/* Lime AI — chat, streaming SSE, vocal, actions de l'agent */
 
 import {
   $, $$, h, api, state, bus, toast, renderMarkdown, saveChat, clearChat, ensureThread,
@@ -665,7 +665,7 @@ function welcomeCard() {
       ? 'Ask your <em>question</em>'
       : 'Describe what you want to <em>build</em>';
   const description = isSuper
-    ? `The supervisor splits the request, agents explore in parallel, then Supernova assembles and executes on <strong>${escapeText(projectName)}</strong>.`
+    ? `The supervisor splits the request, agents explore in parallel, then Lime assembles and executes on <strong>${escapeText(projectName)}</strong>.`
     : kind === 'chat'
       ? 'Research, questions, or simple code. Project context remains available.'
       : `Work on <strong>${escapeText(projectName)}</strong>: files, live preview, terminal, and MCP tools.`;
@@ -677,7 +677,7 @@ function welcomeCard() {
       <p>${description}</p>
     </div>
     <div class="welcome-grid"></div>
-    <p class="welcome-note">Mode ${state.project?.mode === 'cloud' ? '<strong>Cloud</strong> — Supernova internal storage, ZIP export' : '<strong>PC</strong> — writes to a local folder'} · ${escapeText(providerLabel())}${isSuper ? ` · ${agentCount} agents` : ''}</p>`;
+    <p class="welcome-note">Mode ${state.project?.mode === 'cloud' ? '<strong>Cloud</strong> — Lime internal storage, ZIP export' : '<strong>PC</strong> — writes to a local folder'} · ${escapeText(providerLabel())}${isSuper ? ` · ${agentCount} agents` : ''}</p>`;
   const grid = node.querySelector('.welcome-grid');
   const suggestions = isSuper ? SUPER_SUGGESTIONS : kind === 'chat' ? CHAT_SUGGESTIONS : AGENT_SUGGESTIONS;
   for (const suggestion of suggestions) {
@@ -710,7 +710,7 @@ function renderMessage(message) {
 
   const head = h('div', { class: 'head' }, [
     h('span', { class: 'avatar', html: icon('logo') }),
-    h('span', { class: 'name', text: 'Supernova' }),
+    h('span', { class: 'name', text: 'Lime' }),
   ]);
 
   const activity = h('div', { class: 'activity' });
